@@ -1,0 +1,12 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import CategoryManager from '../components/Categories/CategoryManager.jsx';
+---
+
+<MainLayout title="Categories">
+  
+  <div class="h-[calc(100vh-100px)]">
+    <CategoryManager client:load />
+  </div>
+
+</MainLayout>

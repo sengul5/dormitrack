@@ -1,0 +1,17 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+// DİKKAT: Artık sadece StaffManager'ı import ediyoruz.
+// PersonalList ve UrgentRequests buradan kalktı.
+import StaffManager from '../components/Assign/StaffManager.jsx';
+---
+
+<MainLayout title="Staff Management">
+  
+  {/* Sayfada tek bir bileşen var: StaffManager.
+      Tüm yüksekliği (h-full) kaplayacak.
+  */}
+  <div class="h-[calc(100vh-100px)]">
+    <StaffManager client:load />
+  </div>
+
+</MainLayout>

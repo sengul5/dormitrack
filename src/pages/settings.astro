@@ -1,0 +1,13 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import SettingsManager from '../components/Settings/SettingsManager.jsx';
+---
+
+<MainLayout title="Settings">
+  
+  {/* SETTINGS AREA */}
+  <div class="h-full pb-10">
+    <SettingsManager client:load />
+  </div>
+
+</MainLayout>

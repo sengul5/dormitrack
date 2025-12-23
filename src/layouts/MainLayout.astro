@@ -1,0 +1,25 @@
+---
+import Sidebar from '../components/Sidebar.jsx';
+
+const { title } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | DormiTrack</title>
+  </head>
+  
+  <body class="bg-[#F8FAFC] text-slate-800 font-sans">
+    
+    <div class="flex">
+      <Sidebar client:load />
+
+      <main class="flex-1 p-8 h-screen overflow-y-auto">
+        <slot />
+      </main>
+    </div>
+
+  </body>
+</html>

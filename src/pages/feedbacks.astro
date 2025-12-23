@@ -1,0 +1,19 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import FeedbackAnalytics from '../components/Feedback/FeedbackAnalytics.jsx';
+---
+
+<MainLayout title="Feedback Analysis">
+  
+  <div class="h-full pb-10">
+    {/* Üst Başlık */}
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">Feedback Analysis</h1>
+      <p class="text-gray-500 mt-1">Review student satisfaction and service quality.</p>
+    </div>
+
+    {/* Analiz Bileşeni */}
+    <FeedbackAnalytics client:load />
+  </div>
+
+</MainLayout>

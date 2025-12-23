@@ -1,0 +1,14 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import ComplaintsTable from '../components/Requests/ComplaintsTable.jsx';
+// UrgentComplaints'i artık kullanmıyoruz, silebilirsin
+---
+
+<MainLayout title="View Complaints">
+  
+  {/* VIEW REQUESTS GİBİ TAM EKRAN VE SADE */}
+  <div class="h-[calc(100vh-100px)]">
+    <ComplaintsTable client:load />
+  </div>
+
+</MainLayout>

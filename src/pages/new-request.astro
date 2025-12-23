@@ -1,0 +1,19 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import CreateRequestForm from '../components/Requests/CreateRequestForm.jsx';
+---
+
+<MainLayout title="Create New Request">
+  
+  <div class="h-[calc(100vh-100px)]">
+    {/* BAŞLIK */}
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">New Maintenance Request</h1>
+      <p class="text-gray-500 mt-1">Report an issue in your room or common areas.</p>
+    </div>
+
+    {/* FORM */}
+    <CreateRequestForm client:load />
+  </div>
+
+</MainLayout>
