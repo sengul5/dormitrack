@@ -8,8 +8,9 @@ import NewComplaints from './NewComplaints';
 import FeedbackChart from './FeedbackChart';
 import AvailableStaff from './AvailableStaff';
 
-// Öğrenci Bileşeni
+// Öğrenci ve Personel Bileşenleri
 import StudentDashboard from './StudentDashboard';
+import StaffDashboard from './StaffDashboard'; // <--- 1. YENİ: Bunu ekle
 
 const DashboardManager = () => {
   const { role } = useAppConfig();
@@ -21,12 +22,8 @@ const DashboardManager = () => {
 
   // --- PERSONEL GÖRÜNÜMÜ ---
   if (role === 'staff') {
-    return (
-        <div className="flex flex-col items-center justify-center h-[500px] text-gray-500">
-            <h2 className="text-2xl font-bold">Staff Dashboard</h2>
-            <p>Tasks assigned to you will appear here.</p>
-        </div>
-    );
+    // 2. YENİ: Burayı güncelledik, artık boş div yerine gerçek dashboard var.
+    return <StaffDashboard />;
   }
 
   // --- ADMIN GÖRÜNÜMÜ (Varsayılan) ---
