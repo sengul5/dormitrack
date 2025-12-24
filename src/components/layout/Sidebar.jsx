@@ -13,42 +13,21 @@ import {
   Megaphone,
   AlertOctagon,
 } from 'lucide-react'
-// import { useAppConfig } from '@/hooks/useAppConfig'; // Hook yolunu düzenle
+import { useAppConfig } from '@/hooks/useAppConfig'
 
-// --- Types ---
-type UserRole = 'admin' | 'student' | 'staff'
-
-// Mock Hook (Eğer hook dosyan yoksa bu kısmı kullanabilirsin, varsa import et)
-const useAppConfig = () => {
-  const [role, setRole] = useState<UserRole>('admin')
-  return {
-    role,
-    setUserRole: setRole,
-    t: {
-      sidebar: {
-        dashboard: 'Dashboard',
-        staff: 'Staff',
-        requests: 'Requests',
-        complaints: 'Complaints',
-        categories: 'Categories',
-        settings: 'Settings',
-        feedback: 'Feedback',
-        newRequest: 'New Request',
-        myRequests: 'My Requests',
-        logout: 'Logout',
-      },
-    },
-  }
-}
-
-const Sidebar: React.FC = () => {
+const Sidebar = () => {
   const [currentPath, setCurrentPath] = useState('')
+
+  // ROLE bilgisini çekiyoruz
   const { t, role, setUserRole } = useAppConfig()
 
   useEffect(() => {
     setCurrentPath(window.location.pathname)
   }, [])
 
+  // --- MENÜ LİSTESİ (ROLLER İÇİN AYRI AYRI) ---
+
+  // 1. ADMIN MENÜSÜ
   const adminLinks = [
     { name: t.sidebar.dashboard, icon: LayoutDashboard, href: '/' },
     { name: t.sidebar.staff, icon: UserPlus, href: '/assign' },
@@ -59,6 +38,7 @@ const Sidebar: React.FC = () => {
     { name: t.sidebar.feedback, icon: MessageSquare, href: '/feedbacks' },
   ]
 
+  // 2. STUDENT MENÜSÜ
   const studentLinks = [
     { name: t.sidebar.dashboard, icon: LayoutDashboard, href: '/' },
     { name: t.sidebar.newRequest, icon: PlusCircle, href: '/new-request' },
@@ -68,17 +48,21 @@ const Sidebar: React.FC = () => {
     { name: t.sidebar.settings, icon: Settings, href: '/settings' },
   ]
 
+  // 3. STAFF MENÜSÜ
   const staffLinks = [
     { name: t.sidebar.dashboard, icon: LayoutDashboard, href: '/' },
     { name: 'My Tasks', icon: FileText, href: '/my-tasks' },
     { name: t.sidebar.settings, icon: Settings, href: '/settings' },
   ]
 
+  // Hangi rol varsa onun linklerini seç
   let links = adminLinks
   if (role === 'student') links = studentLinks
   if (role === 'staff') links = staffLinks
 
-  const handleSwitchRole = () => {
+  // TEST İÇİN ROL DEĞİŞTİRME MANTIĞI
+  const handleSwitchRole = (e) => {
+    e.preventDefault()
     if (role === 'admin') setUserRole('student')
     else if (role === 'student') setUserRole('staff')
     else setUserRole('admin')
@@ -113,7 +97,7 @@ const Sidebar: React.FC = () => {
           )
         })}
 
-        {/* ROLE SWITCHER */}
+        {/* ACCOUNT SWITCHER (TEST İÇİN) */}
         <div className="mt-8 border-t border-white/20 pt-4">
           <button
             onClick={handleSwitchRole}
@@ -132,11 +116,7 @@ const Sidebar: React.FC = () => {
       <div className="mt-auto p-6">
         <div className="flex items-center gap-3 rounded-2xl border border-blue-400/30 bg-blue-600/40 p-3 backdrop-blur-sm">
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-gray-200">
-            <img
-              src={`https://i.pravatar.cc/150?u=${role}`}
-              alt="user"
-              className="h-full w-full object-cover"
-            />
+            <img src={`https://i.pravatar.cc/150?u=${role}`} alt="user" />
           </div>
           <div className="overflow-hidden">
             <p className="truncate text-sm font-semibold">
