@@ -1,12 +1,13 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import CreateComplaintForm from '../components/Requests/CreateComplaintForm.jsx';
+import MainLayout from '@layouts/MainLayout.astro'
+import CreateComplaintForm from '@features/CreateComplaintForm'
 ---
+
 <MainLayout title="New Complaint">
   <div class="h-full pb-10">
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-800">Report an Issue</h1>
-      <p class="text-gray-500 mt-1">Submit a complaint about noise, hygiene, or security.</p>
+      <p class="mt-1 text-gray-500">Submit a complaint about noise, hygiene, or security.</p>
     </div>
     <CreateComplaintForm client:load />
   </div>

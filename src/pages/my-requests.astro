@@ -1,7 +1,8 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import MyRequestsTable from '../components/Requests/MyRequestsTable.jsx';
+import MainLayout from '@layouts/MainLayout.astro'
+import MyRequestsTable from '@features/MyRequestsTable'
 ---
+
 <MainLayout title="My Requests">
   <div class="h-full pb-10">
     <MyRequestsTable client:load />

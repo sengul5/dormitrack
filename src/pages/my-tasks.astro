@@ -1,15 +1,13 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
+import MainLayout from '@layouts/MainLayout.astro'
 
 // Çakışmayı önlemek için bileşeni 'MyTasksComponent' adıyla içeri alıyoruz
-import MyTasksComponent from '../components/Assign/MyTasks.jsx';
+import MyTasksComponent from '@features/MyTasks'
 ---
 
 <MainLayout title="My Tasks">
-  
   <div class="h-full pb-10">
     {/* React bileşenini burada çağırıyoruz */}
     <MyTasksComponent client:load />
   </div>
-
 </MainLayout>

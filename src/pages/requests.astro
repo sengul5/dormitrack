@@ -1,14 +1,10 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import RequestTable from '../components/Requests/RequestTable.jsx';
-// UrgentRequests importunu kaldırdık.
+import MainLayout from '@layouts/MainLayout.astro'
+import RequestTable from '@features/RequestTable'
 ---
 
 <MainLayout title="Requests Center">
-  
-  {/* GRID YOK, SADECE TEK VE GENİŞ BİR ALAN VAR */}
   <div class="h-[calc(100vh-100px)]">
     <RequestTable client:load />
   </div>
-
 </MainLayout>

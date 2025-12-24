@@ -1,7 +1,8 @@
 ---
-import MainLayout from '../layouts/MainLayout.astro';
-import MyComplaintsTable from '../components/Requests/MyComplaintsTable.jsx';
+import MainLayout from '@layouts/MainLayout.astro'
+import MyComplaintsTable from '@features/MyComplaintsTable'
 ---
+
 <MainLayout title="My Complaints">
   <div class="h-full pb-10">
     <MyComplaintsTable client:load />
