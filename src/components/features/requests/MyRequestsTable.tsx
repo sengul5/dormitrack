@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Eye, Star, MapPin, Loader2 } from 'lucide-react'
+import { Eye, Star, MapPin, Loader2, Calendar } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
@@ -12,9 +12,9 @@ interface MyRequest {
   id: number
   category: string
   room: string
-  priority: 'High' | 'Medium' | 'Low'
+  priority: string
   date: string
-  status: 'In Progress' | 'Pending' | 'Completed'
+  status: string
   desc: string
   rated?: boolean
   rating?: number
@@ -24,38 +24,37 @@ const MyRequestsTable: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<MyRequest | null>(null)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [itemToRate, setItemToRate] = useState<MyRequest | null>(null)
-  
-  // Dashboard'daki gibi state ve loading yönetimi
   const [myRequests, setMyRequests] = useState<MyRequest[]>([])
   const [loading, setLoading] = useState(true)
 
-  // VERİLERİ ÇEK (Dashboard'daki fetch mantığı ile aynı)
   const fetchRequests = async () => {
     try {
       setLoading(true)
-      // Önemli: API adresinin /api/requests/my olduğundan emin ol
       const res = await fetch('/api/requests/my')
       if (!res.ok) throw new Error('Failed to fetch')
-      
       const data = await res.json()
       
-      // Backend'den gelen veriyi tabloya göre formatla
-      const formatted = data.map((item: any) => ({
-        id: item.id,
-        category: item.category,
-        room: item.room || 'N/A',
-        priority: item.priority || 'Medium',
-        // Tarihi Dashboard'daki gibi okunabilir yap
-       status: item.status,
-        desc: item.description || item.desc,
-        rated: item.rated || false,
-        rating: item.rating || 0
-      }))
+      const formatted = data.map((item: any) => {
+        // TARİH DÜZELTMESİ: Date boşa düşerse createdAt, o da yoksa bugünü kullan
+        const formattedDate = item.date || 
+          (item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR'));
 
-      setMyRequests(formatted.reverse()) // En yeni en üstte
+        return {
+          id: item.id,
+          category: item.category,
+          room: item.room || '101',
+          priority: (item.priority || 'Medium').toUpperCase(),
+          date: formattedDate,
+          status: (item.status || 'PENDING').toUpperCase(),
+          desc: item.description || item.desc || '',
+          rated: item.rated || false,
+          rating: item.rating || 0
+        }
+      })
+
+      setMyRequests(formatted.reverse())
     } catch (error) {
       toast.error('Talepler yüklenemedi.')
-      console.error(error)
     } finally {
       setLoading(false)
     }
@@ -72,27 +71,35 @@ const MyRequestsTable: React.FC = () => {
 
   const handleFeedbackSubmit = async (data: { rating: number; comment: string }) => {
     if (!itemToRate) return
-    
+    const toastId = toast.loading('Geri bildirim gönderiliyor...')
     try {
       const res = await fetch(`/api/requests/${itemToRate.id}/rate`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
-      
       if (res.ok) {
-        toast.success('Geri bildiriminiz alındı!')
-        fetchRequests() // Listeyi yenile
+        toast.success('Geri bildiriminiz alındı!', { id: toastId })
+        fetchRequests()
         setFeedbackModalOpen(false)
       }
     } catch (error) {
-      toast.error('Hata oluştu.')
+      toast.error('Hata oluştu.', { id: toastId })
     }
   }
 
-  const getPriorityVariant = (p: string) => {
-    if (p === 'High') return 'dangerSoft'
-    if (p === 'Medium') return 'warning'
+  const getStatusVariant = (status: string) => {
+    const s = status.toUpperCase()
+    if (s === 'PENDING' || s === 'ACTIVE' || s === 'OPEN') return 'dangerSoft'
+    if (s === 'IN PROGRESS' || s === 'INVESTIGATING' || s === 'PROCESSING') return 'info'
+    if (s === 'COMPLETED' || s === 'RESOLVED' || s === 'DONE') return 'success'
+    return 'outline'
+  }
+
+  const getPriorityVariant = (priority: string) => {
+    const p = priority.toUpperCase()
+    if (p === 'CRITICAL' || p === 'HIGH') return 'danger'
+    if (p === 'MEDIUM') return 'warning'
     return 'success'
   }
 
@@ -104,54 +111,76 @@ const MyRequestsTable: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-2">
         {loading ? (
-          <div className="flex h-40 items-center justify-center">
-            <Loader2 className="animate-spin text-blue-600" size={32} />
+          <div className="flex h-40 items-center justify-center text-gray-400">
+            <Loader2 className="animate-spin mr-2" /> Loading...
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableHead className="pl-6">Category</TableHead>
-              <TableHead>Room</TableHead>
+              <TableHead className="text-left">Room</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="pr-6 text-right">Action</TableHead>
+              <TableHead className="pr-12 text-right">Action</TableHead>
             </TableHeader>
             <TableBody>
               {myRequests.length === 0 ? (
                 <TableRow>
-                  <td colSpan={6} className="py-10 text-center text-gray-500">
+                  <td colSpan={6} className="py-10 text-center text-gray-500 text-sm">
                     Henüz kayıtlı talebiniz bulunmuyor.
                   </td>
                 </TableRow>
               ) : (
                 myRequests.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="align-middle">
                     <TableCell className="pl-6 font-bold text-gray-800">{item.category}</TableCell>
-                    <TableCell className="text-center">
-                      <span className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
+                    
+                    <TableCell className="text-left py-4">
+                      <span className="inline-flex items-center justify-center rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
                         {item.room}
                       </span>
                     </TableCell>
+
                     <TableCell className="font-mono text-xs text-gray-500">{item.date}</TableCell>
+                    
                     <TableCell>
                       <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
                     </TableCell>
+                    
                     <TableCell>
-                      <Badge variant={item.status === 'Completed' ? 'success' : item.status === 'In Progress' ? 'info' : 'outline'}>
-                        {item.status}
-                      </Badge>
+                      <Badge variant={getStatusVariant(item.status) as any}>{item.status}</Badge>
                     </TableCell>
-                    <TableCell className="pr-6 text-right">
-                      {item.status === 'Completed' && !item.rated ? (
-                        <Button size="sm" variant="outline" onClick={() => handleOpenRate(item)}>
-                          <Star size={14} className="mr-1" /> Rate
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(item)}>
-                          <Eye size={16} className="mr-1" /> View
-                        </Button>
-                      )}
+
+                    {/* ACTION LAYOUT DÜZELTMESİ */}
+                    <TableCell className="pr-6 text-right w-[140px]">
+                      <div className="flex justify-end items-center h-10">
+                        {item.status === 'COMPLETED' && !item.rated ? (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => handleOpenRate(item)} 
+                            className="h-9 w-24 border-green-200 text-green-600 hover:bg-green-50 justify-center"
+                          >
+                            <Star size={14} className="mr-1" /> Rate
+                          </Button>
+                        ) : item.rated ? (
+                          <div className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-100 bg-gray-50 h-9 w-24 text-xs font-bold text-gray-500">
+                            <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                            {item.rating}.0
+                          </div>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            onClick={() => setSelectedRequest(item)} 
+                            className="h-9 w-24 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50"
+                          >
+                            <Eye size={16} /> 
+                            <span className="font-bold">View</span>
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -167,8 +196,13 @@ const MyRequestsTable: React.FC = () => {
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 italic">
               "{selectedRequest.desc}"
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <MapPin size={16} /> Location: <span className="font-bold text-gray-800">{selectedRequest.room}</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <MapPin size={16} /> Location: <span className="font-bold text-gray-800">{selectedRequest.room}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar size={16} /> Date: <span className="font-bold text-gray-800">{selectedRequest.date}</span>
+              </div>
             </div>
           </div>
         )}

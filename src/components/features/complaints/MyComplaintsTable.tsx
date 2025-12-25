@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Eye, Star, MapPin } from 'lucide-react'
+import { Eye, Star, MapPin, Loader2 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
 import Modal from '@ui/Modal.component'
-import GiveFeedbackModal from '@/components/modals/GiveFeedbackModal' // Ortak modal yolu
+import GiveFeedbackModal from '@/components/modals/GiveFeedbackModal' 
 import toast from 'react-hot-toast'
 
 interface MyComplaint {
@@ -27,14 +27,19 @@ const MyComplaintsTable: React.FC = () => {
   const [myComplaints, setMyComplaints] = useState<MyComplaint[]>([])
   const [loading, setLoading] = useState(true)
 
-  // VERİLERİ ÇEK
   const fetchMyComplaints = async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/complaints/my')
       if (!res.ok) throw new Error('Fetch failed')
       const data = await res.json()
-      setMyComplaints(data)
+      
+      const formatted = data.map((item: any) => ({
+        ...item,
+        date: item.date || (item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : '25.12.2025')
+      }))
+      
+      setMyComplaints(formatted)
     } catch (error) {
       toast.error('Could not load your complaints')
     } finally {
@@ -51,10 +56,8 @@ const MyComplaintsTable: React.FC = () => {
     setFeedbackModalOpen(true)
   }
 
-  // PUAN VERME
   const handleFeedbackSubmit = async (data: { rating: number; comment?: string }) => {
     if (!itemToRate) return
-
     const toastId = toast.loading('Sending feedback...')
     try {
       const res = await fetch(`/api/complaints/${itemToRate.id}/rate`, {
@@ -65,12 +68,8 @@ const MyComplaintsTable: React.FC = () => {
           comment: data.comment,
         }),
       })
-
       if (!res.ok) throw new Error('Rate failed')
-
       toast.success('Thank you for your feedback!', { id: toastId })
-
-      // Listeyi güncelle
       fetchMyComplaints()
       setFeedbackModalOpen(false)
       setItemToRate(null)
@@ -87,78 +86,83 @@ const MyComplaintsTable: React.FC = () => {
 
       <div className="flex-1 overflow-auto p-2">
         {loading ? (
-          <div className="flex h-40 items-center justify-center text-gray-400">Loading...</div>
+          <div className="flex h-40 items-center justify-center text-gray-400">
+             <Loader2 className="animate-spin mr-2" /> Loading...
+          </div>
         ) : (
           <Table>
             <TableHeader>
               <TableHead className="pl-6">Category</TableHead>
-              <TableHead>Room</TableHead>
+              {/* Room başlığı sola yaslanarak hiza sağlandı */}
+              <TableHead className="text-left">Room</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="pr-6 text-right">Action</TableHead>
+              {/* Action başlığı sağdaki boşluğu kapatmak için içeri çekildi */}
+              <TableHead className="pr-12 text-right">Action</TableHead>
             </TableHeader>
             <TableBody>
               {myComplaints.length === 0 ? (
                 <TableRow>
-                  <TableCell className="py-8 text-center text-gray-500">
+                  <td colSpan={6} className="py-8 text-center text-gray-500 text-sm">
                     You haven't submitted any complaints yet.
-                  </TableCell>
+                  </td>
                 </TableRow>
               ) : (
                 myComplaints.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="align-middle">
                     <TableCell className="pl-6 font-bold text-gray-800">{item.category}</TableCell>
-                    <TableCell className="text-center">
-                      <span className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
+                    
+                    {/* Room hücresi dikeyde ve yatayda başlıkla tam hizalandı */}
+                    <TableCell className="text-left py-4">
+                      <span className="inline-flex items-center justify-center rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
                         {item.room}
                       </span>
                     </TableCell>
+
                     <TableCell className="font-mono text-xs text-gray-500">{item.date}</TableCell>
+                    
                     <TableCell>
-                      <Badge
-                        variant={
-                          item.priority === 'Critical'
-                            ? 'danger'
-                            : item.priority === 'High'
-                              ? 'warning'
-                              : 'info'
-                        }
-                      >
+                      <Badge variant={item.priority === 'Critical' ? 'danger' : item.priority === 'High' ? 'warning' : 'info' as any}>
                         {item.priority}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={item.status === 'Resolved' ? 'success' : 'info'}>
+                      <Badge variant={item.status === 'Resolved' ? 'success' : 'info' as any}>
                         {item.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="pr-6 text-right">
-                      {item.status === 'Resolved' && !item.rated ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-200 text-green-600 hover:bg-green-50"
-                          onClick={() => handleOpenRate(item)}
-                        >
-                          <Star size={14} className="mr-1" /> Rate
-                        </Button>
-                      ) : item.rated ? (
-                        <div className="inline-flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500">
-                          <Star size={12} className="fill-yellow-400 text-yellow-400" />{' '}
-                          {item.rating}.0
-                        </div>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          className="border-transparent bg-red-50 text-red-600 hover:bg-red-100"
-                          onClick={() => setSelected(item)}
-                        >
-                          <Eye size={16} className="mr-1" /> View
-                        </Button>
-                      )}
-                    </TableCell>
+
+                    {/* Action Layout Düzeltmesi */}
+<TableCell className="pr-6 text-right w-[140px]"> 
+  <div className="flex justify-end items-center h-10"> 
+    {item.status === 'Resolved' && !item.rated ? (
+      <Button
+        size="sm"
+        variant="outline"
+        className="border-green-200 text-green-600 hover:bg-green-50 h-9 w-full justify-center"
+        onClick={() => handleOpenRate(item)}
+      >
+        <Star size={14} className="mr-1" /> Rate
+      </Button>
+    ) : item.rated ? (
+      <div className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 h-9 w-full text-xs font-bold text-gray-500">
+        <Star size={12} className="fill-yellow-400 text-yellow-400" />
+        {item.rating}.0
+      </div>
+    ) : (
+      <Button
+        size="sm" 
+        variant="ghost"
+        className="h-9 w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 transition-colors"
+        onClick={() => setSelected(item)}
+      >
+        <Eye size={16} /> 
+        <span className="font-bold">View</span>
+      </Button>
+    )}
+  </div>
+</TableCell>
                   </TableRow>
                 ))
               )}
@@ -178,8 +182,7 @@ const MyComplaintsTable: React.FC = () => {
               "{selected.desc}"
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <MapPin size={16} /> Location:{' '}
-              <span className="font-bold text-gray-800">{selected.room}</span>
+              <MapPin size={16} /> Location: <span className="font-bold text-gray-800">{selected.room}</span>
             </div>
           </div>
         )}
