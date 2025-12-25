@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "server": "bun entry.ts",
+    "server": "bun ./entry.ts",
     "astro": "astro",
     "db-generate": "bunx @better-auth/cli@latest generate --config ./src/lib/auth.ts",
     "db-migrate": "bunx @better-auth/cli@latest migrate --config ./src/lib/auth.ts",
