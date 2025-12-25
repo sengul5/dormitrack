@@ -69,7 +69,7 @@ const CreateRequestForm: React.FC = () => {
           <a href="/dashboard">
             <Button variant="outline">Go to Dashboard</Button>
           </a>
-          <a href="/my-requests">
+          <a href="/dashboard/my-requests">
             <Button>Track Status</Button>
           </a>
         </div>
