@@ -1,5 +1,5 @@
 import React from 'react'
-import { authClient } from '@/lib/auth-client' // Auth client importu
+import { authClient } from '@/lib/auth-client' // Auth client eklendi
 
 import StatsRow from './admin/StatsRow'
 import NewRequests from './admin/NewRequests'
@@ -10,36 +10,26 @@ import StudentDashboard from './views/StudentDashboard'
 import StaffDashboard from './views/StaffDashboard'
 
 const DashboardManager: React.FC = () => {
-  // Better-auth session hook'u
+  // useAppConfig yerine gerçek session verisi
   const { data: session, isPending } = authClient.useSession()
 
-  // Session yüklenirken boş veya loader göstermek,
-  // Admin panelinin anlık olarak "flash" yapmasını engeller.
   if (isPending) {
-    return (
-      <div className="flex h-full w-full items-center justify-center p-10 text-gray-400">
-        Loading dashboard...
-      </div>
-    )
+    return <div className="p-10 text-center text-gray-400">Loading dashboard...</div>
   }
 
-  const role = session?.user?.role
+  const role = session?.user?.role || 'student' // Varsayılan student
 
-  // Öğrenci Görünümü
   if (role === 'student') {
     return <StudentDashboard />
   }
 
-  // Personel Görünümü
   if (role === 'staff') {
     return <StaffDashboard />
   }
 
-  // Varsayılan Görünüm (Admin)
-  // role === 'admin' kontrolü de eklenebilir ama
-  // tanımlı olmayan rollerin de admin görmesini istiyorsanız böyle kalabilir.
+  // Admin Dashboard (Varsayılan)
   return (
-    <div className="animate-in fade-in duration-500">
+    <>
       <StatsRow />
       <div className="grid grid-cols-1 items-start gap-8 pb-10 lg:grid-cols-3">
         <div className="flex flex-col gap-8 lg:col-span-2">
@@ -51,7 +41,7 @@ const DashboardManager: React.FC = () => {
           <AvailableStaff />
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

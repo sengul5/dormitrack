@@ -2,6 +2,10 @@ import { type FastifyPluginAsync } from 'fastify'
 import auth from '@lib/auth'
 
 import { complaints } from './routes/complaints'
+import { requestsRoute } from './routes/requests'
+import { categories } from './routes/categories'
+import { dashboardRoute } from './routes/dashboard'
+import { staffRoute } from './routes/staff'
 
 export const apiPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.route({
@@ -41,6 +45,10 @@ export const apiPlugin: FastifyPluginAsync = async (fastify) => {
   })
 
   await fastify.register(complaints, { prefix: '/complaints' })
+  await fastify.register(requestsRoute, { prefix: '/requests' })
+  await fastify.register(categories, { prefix: '/categories' })
+  await fastify.register(dashboardRoute, { prefix: '/dashboard' })
+  await fastify.register(staffRoute, { prefix: '/staff' })
 
   fastify.log.debug({ msg: 'API Routes Registered' })
 }

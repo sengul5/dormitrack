@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   FileText,
   Megaphone,
@@ -10,31 +10,58 @@ import {
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Badge from '@ui/Badge.component'
+import toast from 'react-hot-toast'
 
 const StudentDashboard: React.FC = () => {
-  const stats = { activeRequests: 2, openComplaints: 1 }
+  const [stats, setStats] = useState({ activeRequests: 0, openComplaints: 0 })
+  const [recentRequests, setRecentRequests] = useState<any[]>([])
+  const [recentComplaints, setRecentComplaints] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const recentRequests = [
-    { id: 101, title: 'Wifi Connection Issue', date: 'Today, 10:30 AM', status: 'In Progress' },
-    { id: 105, title: 'Broken Chair', date: '12.10.2025', status: 'Completed' },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Talepleri ve Şikayetleri API'den çekiyoruz
+        const [reqRes, compRes] = await Promise.all([
+          fetch('/api/requests/my'),
+          fetch('/api/complaints/my'),
+        ])
 
-  const recentComplaints = [
-    { id: 302, title: 'Noise from Room 404', date: 'Yesterday', status: 'Pending' },
-  ]
+        const reqData = await reqRes.json()
+        const compData = await compRes.json()
+
+        // İstatistikleri hesapla
+        setStats({
+          activeRequests: reqData.filter((r: any) => r.status !== 'Completed').length,
+          openComplaints: compData.filter((c: any) => c.status !== 'Resolved').length,
+        })
+
+        // Son 2-3 kayıtı al
+        setRecentRequests(reqData.slice(0, 3))
+        setRecentComplaints(compData.slice(0, 3))
+      } catch (error) {
+        toast.error('Dashboard verileri yüklenemedi.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'In Progress':
+      case 'Investigating':
         return (
           <Badge variant="info" className="w-32 justify-center">
-            <Clock size={12} className="mr-1" /> In Progress
+            <Clock size={12} className="mr-1" /> Processing
           </Badge>
         )
       case 'Completed':
+      case 'Resolved':
         return (
           <Badge variant="success" className="w-32 justify-center">
-            <CheckCircle size={12} className="mr-1" /> Completed
+            <CheckCircle size={12} className="mr-1" /> Done
           </Badge>
         )
       default:
@@ -46,18 +73,19 @@ const StudentDashboard: React.FC = () => {
     }
   }
 
+  if (loading) return <div className="p-8 text-center text-gray-400">Loading your dashboard...</div>
+
   return (
     <div className="h-full space-y-8 pb-10">
       {/* Hero */}
       <div className="relative flex flex-col items-center justify-between gap-6 overflow-hidden rounded-[30px] bg-blue-600 p-8 text-white shadow-lg shadow-blue-200 md:flex-row">
-        <div className="pointer-events-none absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white/10 blur-3xl"></div>
         <div className="relative z-10">
-          <h2 className="mb-2 text-3xl font-bold">Welcome, Student! 👋</h2>
-          <p className="text-lg text-blue-100 opacity-90">Everything looks good in Room 101.</p>
+          <h2 className="mb-2 text-3xl font-bold">Welcome! 👋</h2>
+          <p className="text-lg text-blue-100 opacity-90">Manage your dormitory life easily.</p>
         </div>
         <div className="relative z-10 flex gap-3">
           <a
-            href="/new-request"
+            href="/dashboard/new-request"
             className="flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-blue-600 shadow-sm transition-colors hover:bg-blue-50"
           >
             <Plus size={18} /> New Request
@@ -67,7 +95,7 @@ const StudentDashboard: React.FC = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Card className="flex items-center justify-between rounded-[24px] p-6 transition-shadow hover:shadow-md">
+        <Card className="flex items-center justify-between rounded-[24px] p-6">
           <div className="flex items-center gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
               <FileText size={32} />
@@ -79,9 +107,12 @@ const StudentDashboard: React.FC = () => {
               <p className="text-4xl font-bold text-gray-800">{stats.activeRequests}</p>
             </div>
           </div>
-          <ArrowRight className="text-gray-300" />
+          <a href="/dashboard/my-requests">
+            <ArrowRight className="text-gray-300 hover:text-blue-600" />
+          </a>
         </Card>
-        <Card className="flex items-center justify-between rounded-[24px] p-6 transition-shadow hover:shadow-md">
+
+        <Card className="flex items-center justify-between rounded-[24px] p-6">
           <div className="flex items-center gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
               <Megaphone size={32} />
@@ -93,7 +124,9 @@ const StudentDashboard: React.FC = () => {
               <p className="text-4xl font-bold text-gray-800">{stats.openComplaints}</p>
             </div>
           </div>
-          <ArrowRight className="text-gray-300" />
+          <a href="/my-complaints">
+            <ArrowRight className="text-gray-300 hover:text-red-600" />
+          </a>
         </Card>
       </div>
 
@@ -114,7 +147,7 @@ const StudentDashboard: React.FC = () => {
                     #{item.id}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-800">{item.title}</h4>
+                    <h4 className="text-sm font-bold text-gray-800">{item.category}</h4>
                     <div className="mt-1 text-xs text-gray-400">{item.date}</div>
                   </div>
                 </div>
@@ -138,7 +171,7 @@ const StudentDashboard: React.FC = () => {
                     #{item.id}
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-800">{item.title}</h4>
+                    <h4 className="text-sm font-bold text-gray-800">{item.category}</h4>
                     <div className="mt-1 text-xs text-gray-400">{item.date}</div>
                   </div>
                 </div>

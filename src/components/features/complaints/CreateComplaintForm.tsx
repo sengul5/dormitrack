@@ -79,7 +79,7 @@ const CreateComplaintForm: React.FC = () => {
           <a href="/dashboard">
             <Button variant="outline">Dashboard</Button>
           </a>
-          <a href="/my-complaints">
+          <a href="/dashboard/my-complaints">
             <Button variant="danger">Track Status</Button>
           </a>
         </div>

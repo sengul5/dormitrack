@@ -1,10 +1,5 @@
 import { type FastifyPluginAsync } from 'fastify'
-import pg from 'pg'
-
-// Veritabanı bağlantı havuzu (Bunu main dosyanızda oluşturup plugin'e geçebilirsiniz, burada örnek için koydum)
-const pool = new pg.Pool({
-  connectionString: process.env.DSN!, // .env dosyanızdan gelir
-})
+import pool from '@/db/client'
 
 export const complaints: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', async (request, reply) => {
