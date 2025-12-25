@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Archive, CheckCircle, Eye, MapPin, Calendar, User } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Archive, CheckCircle, Eye, MapPin, Calendar, User, RefreshCw } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
@@ -7,6 +7,9 @@ import Button from '@ui/Button.component'
 import Avatar from '@ui/Avatar.component'
 import Modal from '@ui/Modal.component'
 import AssignStaffModal from './AssignStaffModal'
+
+// SERVİS BAĞLANTISI
+import { requestService } from '@/services/requests'
 
 // Types
 interface RequestItem {
@@ -17,90 +20,106 @@ interface RequestItem {
   room: string
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
   date: string
-  status: 'Active' | 'In Progress' | 'Resolved'
+  status: 'Active' | 'Pending' | 'In Progress' | 'Resolved' | 'Completed'
   desc: string
+  studentId?: string
 }
 
 const RequestTable: React.FC = () => {
   const [viewHistory, setViewHistory] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null)
   const [showAssignModal, setShowAssignModal] = useState(false)
+  
+  // Tüm talepleri tek bir state'te tutuyoruz, aşağıda filtreleyeceğiz
+  const [allRequests, setAllRequests] = useState<RequestItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [activeData, setActiveData] = useState<RequestItem[]>([
-    {
-      id: 1,
-      name: 'James Carter',
-      img: 'https://i.pravatar.cc/150?u=10',
-      category: 'Wifi / Internet',
-      room: '101',
-      priority: 'High',
-      date: '15.10.2025',
-      status: 'Active',
-      desc: 'İnternet bağlantısı sürekli kopuyor.',
-    },
-    {
-      id: 2,
-      name: 'Sofia Martinez',
-      img: 'https://i.pravatar.cc/150?u=11',
-      category: 'Room Maintenance',
-      room: '204',
-      priority: 'Medium',
-      date: '14.10.2025',
-      status: 'Active',
-      desc: 'Dolap kapağı menteşesinden çıktı.',
-    },
-    {
-      id: 3,
-      name: 'Daniel Lee',
-      img: 'https://i.pravatar.cc/150?u=12',
-      category: 'Plumbing',
-      room: '305',
-      priority: 'High',
-      date: '17.10.2025',
-      status: 'Active',
-      desc: 'Lavabo altından su damlatıyor.',
-    },
-  ])
+  // --- VERİ ÇEKME ---
+  const fetchRequests = async () => {
+    setLoading(true)
+    try {
+      const response = await requestService.getAll()
+      const data = Array.isArray(response) ? response : (response as any)?.data || []
 
-  const historyData: RequestItem[] = [
-    {
-      id: 99,
-      name: 'Michael Scott',
-      img: 'https://i.pravatar.cc/150?u=20',
-      category: 'Cleaning',
-      room: 'Lobby',
-      priority: 'Medium',
-      date: '01.09.2025',
-      status: 'Resolved',
-      desc: 'Koridorun temizlenmesi gerekiyordu.',
-    },
-  ]
+      const formattedData: RequestItem[] = data.map((item: any) => ({
+        id: item.id,
+        name: item.student?.name || 'Unknown Student',
+        studentId: item.student?.studentId || '',
+        // Avatar yoksa oluştur
+        img: item.student?.photo || `https://ui-avatars.com/api/?name=${item.student?.name || 'S'}&background=random`,
+        category: item.category || 'General',
+        room: item.room || 'Unknown',
+        priority: item.priority || 'Low',
+        date: item.date || new Date().toLocaleDateString('tr-TR'),
+        status: item.status || 'Pending',
+        desc: item.desc || item.description || 'No description provided.',
+      }))
+
+      // En yeniden eskiye sırala
+      setAllRequests(formattedData.reverse())
+    } catch (error) {
+      console.error('Talepler yüklenemedi:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRequests()
+  }, [])
+
+  // --- FİLTRELEME ---
+  // Aktif İşler: Tamamlanmamış olanlar
+  const activeData = allRequests.filter(req => 
+    !['Resolved', 'Completed', 'Cancelled'].includes(req.status)
+  )
+  
+  // Geçmiş İşler: Tamamlanmış olanlar
+  const historyData = allRequests.filter(req => 
+    ['Resolved', 'Completed', 'Cancelled'].includes(req.status)
+  )
 
   const data = viewHistory ? historyData : activeData
 
-  const handleAssignStaff = (staff: any) => {
-    if (selectedRequest) {
-      setActiveData((prev) =>
+  // --- PERSONEL ATAMA ---
+  const handleAssignStaff = async (staff: any) => {
+    if (!selectedRequest) return
+
+    try {
+      // 1. Backend'e güncelleme isteği at (Update metodu varsa)
+      // await requestService.update(selectedRequest.id, { status: 'In Progress', staffId: staff.id })
+      
+      console.log(`Assigned staff ${staff.name} to request #${selectedRequest.id}`)
+
+      // 2. State'i güncelle (Optimistic UI)
+      setAllRequests((prev) =>
         prev.map((item) =>
           item.id === selectedRequest.id ? { ...item, status: 'In Progress' } : item
         )
       )
+      
       setShowAssignModal(false)
       setSelectedRequest(null)
+    } catch (error) {
+      console.error('Atama sırasında hata:', error)
+      alert('Personel atanamadı.')
     }
   }
 
   const getPriorityVariant = (p: string) => {
     switch (p) {
-      case 'Critical':
-        return 'danger'
-      case 'High':
-        return 'warning'
-      case 'Medium':
-        return 'info'
-      default:
-        return 'success'
+      case 'Critical': return 'danger'
+      case 'High': return 'warning' // Turuncu daha iyi duruyor
+      case 'Medium': return 'info'
+      default: return 'success'
     }
+  }
+
+  const getStatusVariant = (s: string) => {
+    if (s === 'Resolved' || s === 'Completed') return 'success'
+    if (s === 'In Progress') return 'warning'
+    if (s === 'Active' || s === 'Pending') return 'dangerSoft'
+    return 'outline'
   }
 
   return (
@@ -114,20 +133,28 @@ const RequestTable: React.FC = () => {
             {viewHistory ? 'Archive' : 'Requests Center'}
           </CardTitle>
           <p className="mt-1 pl-1 text-sm text-gray-500">
-            {viewHistory ? 'Past completed tasks.' : 'Manage current technical issues.'}
+            {viewHistory 
+              ? `Showing ${historyData.length} completed tasks.` 
+              : `Managing ${activeData.length} active technical issues.`}
           </p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex gap-3">
+          <Button variant="ghost" size="icon" onClick={fetchRequests} title="Refresh Data">
+             <RefreshCw size={18} className={loading ? 'animate-spin text-blue-500' : 'text-gray-500'} />
+          </Button>
           <Button
             variant={viewHistory ? 'primary' : 'outline'}
             onClick={() => setViewHistory(!viewHistory)}
           >
-            {viewHistory ? 'Back to Active' : 'History'}
+            {viewHistory ? 'Back to Active' : 'View History'}
           </Button>
         </div>
       </CardHeader>
 
       <div className="flex-1 overflow-auto p-2">
+        {loading && allRequests.length === 0 ? (
+           <div className="flex h-40 items-center justify-center text-gray-400">Loading Requests...</div>
+        ) : (
         <Table>
           <TableHeader>
             <TableHead className="pl-6">Student</TableHead>
@@ -139,50 +166,51 @@ const RequestTable: React.FC = () => {
             <TableHead className="pr-6 text-right">Action</TableHead>
           </TableHeader>
           <TableBody>
-            {data.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="pl-6">
-                  <div className="flex items-center gap-3">
-                    <Avatar src={item.img} alt={item.name} />
-                    <div>
-                      <p className="text-[15px] font-bold text-gray-800">{item.name}</p>
-                      <p className="mt-0.5 text-xs font-medium text-gray-400">#{item.id}</p>
+            {data.length === 0 ? (
+                <TableRow>
+                    <td colSpan={7} className="h-32 text-center text-gray-400">
+                        {viewHistory ? 'No completed tasks found.' : 'No active requests. Great job!'}
+                    </td>
+                </TableRow>
+            ) : (
+                data.map((item) => (
+                <TableRow key={item.id}>
+                    <TableCell className="pl-6">
+                    <div className="flex items-center gap-3">
+                        <Avatar src={item.img} alt={item.name} />
+                        <div>
+                        <p className="text-[15px] font-bold text-gray-800">{item.name}</p>
+                        <p className="mt-0.5 text-xs font-medium text-gray-400">#{item.studentId || item.id}</p>
+                        </div>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell className="font-semibold text-gray-600">{item.category}</TableCell>
-                <TableCell className="font-medium text-gray-500">{item.room}</TableCell>
-                <TableCell>
-                  <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.status === 'Active'
-                        ? 'dangerSoft'
-                        : item.status === 'In Progress'
-                          ? 'warning'
-                          : 'success'
-                    }
-                  >
-                    {item.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-gray-400">{item.date}</TableCell>
-                <TableCell className="pr-6 text-right">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-                    onClick={() => setSelectedRequest(item)}
-                  >
-                    <Eye size={16} /> Details
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+                    </TableCell>
+                    <TableCell className="font-semibold text-gray-600">{item.category}</TableCell>
+                    <TableCell className="font-medium text-gray-500">{item.room}</TableCell>
+                    <TableCell>
+                    <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
+                    </TableCell>
+                    <TableCell>
+                    <Badge variant={getStatusVariant(item.status) as any}>
+                        {item.status}
+                    </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-gray-400">{item.date}</TableCell>
+                    <TableCell className="pr-6 text-right">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        onClick={() => setSelectedRequest(item)}
+                    >
+                        <Eye size={16} /> Details
+                    </Button>
+                    </TableCell>
+                </TableRow>
+                ))
+            )}
           </TableBody>
         </Table>
+        )}
       </div>
 
       <Modal
@@ -213,14 +241,24 @@ const RequestTable: React.FC = () => {
               </label>
               <p className="text-sm font-medium text-gray-700">"{selectedRequest.desc}"</p>
             </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="ghost" onClick={() => setSelectedRequest(null)}>
-                Close
-              </Button>
-              <Button onClick={() => setShowAssignModal(true)}>
-                <User size={16} /> Assign Staff
-              </Button>
+            
+            <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                <div className='flex gap-2'>
+                    <Badge variant={getPriorityVariant(selectedRequest.priority) as any}>{selectedRequest.priority}</Badge>
+                    <Badge variant={getStatusVariant(selectedRequest.status) as any}>{selectedRequest.status}</Badge>
+                </div>
+                
+                <div className="flex gap-3">
+                    <Button variant="ghost" onClick={() => setSelectedRequest(null)}>
+                        Close
+                    </Button>
+                    {/* Sadece Aktif İşlerde Atama Yapılabilsin */}
+                    {!['Resolved', 'Completed'].includes(selectedRequest.status) && (
+                        <Button onClick={() => setShowAssignModal(true)}>
+                            <User size={16} /> Assign Staff
+                        </Button>
+                    )}
+                </div>
             </div>
           </div>
         )}

@@ -1,53 +1,92 @@
-import React from 'react'
-import { Star, TrendingUp, ThumbsUp, MessageCircle, User, Activity } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Star, TrendingUp, ThumbsUp, MessageCircle, Activity, Loader2, RefreshCw } from 'lucide-react'
 import { Card, CardTitle } from '@ui/Card.component'
 import Progress from '@ui/Progress.component'
 import Avatar from '@ui/Avatar.component'
+import Button from '@ui/Button.component'
+
+// SERVİS (Şikayetler ve geri bildirimler için)
+import { complaintService } from '@/services/complaints'
+
+interface AnalyticsData {
+  stats: { avgRating: number; totalReviews: number; helpfulRate: number }
+  categories: Array<{ name: string; score: number; count: number }>
+  reviews: Array<{ id: number; name: string; date: string; rating: number; comment: string; category: string }>
+}
 
 const FeedbackAnalytics: React.FC = () => {
-  const stats = { avgRating: 4.8, totalReviews: 124, helpfulRate: 92 }
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const categories = [
-    { name: 'Wifi & Internet', score: 2.4, count: 45, color: 'bg-red-500' },
-    { name: 'Cleaning Services', score: 4.9, count: 30, color: 'bg-green-500' },
-    { name: 'Technical Repairs', score: 4.2, count: 28, color: 'bg-blue-500' },
-    { name: 'Security', score: 4.7, count: 21, color: 'bg-purple-500' },
-  ]
+  // --- VERİ ÇEKME ---
+  const fetchAnalytics = async () => {
+    setLoading(true)
+    try {
+      // BURASI İLERİDE: const response = await analyticsService.getFeedbackData();
+      // Şimdilik backend simülasyonu yapıyoruz
+      await new Promise((resolve) => setTimeout(resolve, 800))
 
-  const reviews = [
-    {
-      id: 1,
-      name: 'Alice Wonderland',
-      date: '2 hours ago',
-      rating: 5,
-      comment: 'Technical team was very fast!',
-      category: 'Repair',
-    },
-    {
-      id: 2,
-      name: 'John Wick',
-      date: '5 hours ago',
-      rating: 1,
-      comment: 'Internet is still very slow.',
-      category: 'Wifi',
-    },
-    {
-      id: 3,
-      name: 'Bruce Wayne',
-      date: '1 day ago',
-      rating: 5,
-      comment: 'Security staff is very polite.',
-      category: 'Security',
-    },
-  ]
+      setData({
+        stats: { avgRating: 4.8, totalReviews: 124, helpfulRate: 92 },
+        categories: [
+          { name: 'Wifi & Internet', score: 2.4, count: 45 },
+          { name: 'Cleaning Services', score: 4.9, count: 30 },
+          { name: 'Technical Repairs', score: 4.2, count: 28 },
+          { name: 'Security', score: 4.7, count: 21 },
+        ],
+        reviews: [
+          {
+            id: 1,
+            name: 'Alice Wonderland',
+            date: '2 hours ago',
+            rating: 5,
+            comment: 'Technical team was very fast!',
+            category: 'Repair',
+          },
+          {
+            id: 2,
+            name: 'John Wick',
+            date: '5 hours ago',
+            rating: 1,
+            comment: 'Internet is still very slow.',
+            category: 'Wifi',
+          },
+          {
+            id: 3,
+            name: 'Bruce Wayne',
+            date: '1 day ago',
+            rating: 5,
+            comment: 'Security staff is very polite.',
+            category: 'Security',
+          },
+        ]
+      })
+    } catch (error) {
+      console.error('Analytics load error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [])
+
+  if (loading || !data) {
+    return (
+      <div className="flex h-64 items-center justify-center text-gray-400">
+        <Loader2 className="mr-2 animate-spin" /> Loading Analytics Data...
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* 1. TOP STATS */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <StatsCard
           title="Average Satisfaction"
-          value={stats.avgRating}
+          value={data.stats.avgRating}
           icon={Star}
           color="yellow"
           footer={
@@ -56,8 +95,8 @@ const FeedbackAnalytics: React.FC = () => {
                 <Star
                   key={i}
                   size={16}
-                  fill={i < Math.floor(stats.avgRating) ? 'currentColor' : 'none'}
-                  className={i < Math.floor(stats.avgRating) ? '' : 'text-gray-300'}
+                  fill={i < Math.floor(data.stats.avgRating) ? 'currentColor' : 'none'}
+                  className={i < Math.floor(data.stats.avgRating) ? '' : 'text-gray-300'}
                 />
               ))}
             </div>
@@ -65,7 +104,7 @@ const FeedbackAnalytics: React.FC = () => {
         />
         <StatsCard
           title="Resolution Effectiveness"
-          value={`%${stats.helpfulRate}`}
+          value={`%${data.stats.helpfulRate}`}
           icon={ThumbsUp}
           color="green"
           footer={
@@ -76,7 +115,7 @@ const FeedbackAnalytics: React.FC = () => {
         />
         <StatsCard
           title="Total Feedbacks"
-          value={stats.totalReviews}
+          value={data.stats.totalReviews}
           icon={MessageCircle}
           color="blue"
           footer={<p className="mt-2 text-sm text-gray-400">Last 30 days</p>}
@@ -87,11 +126,14 @@ const FeedbackAnalytics: React.FC = () => {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* CATEGORY PERFORMANCE */}
         <Card className="p-8">
-          <CardTitle icon={Activity} className="mb-6">
-            Category Performance
-          </CardTitle>
+          <div className="mb-6 flex items-center justify-between">
+            <CardTitle icon={Activity}>Category Performance</CardTitle>
+            <Button variant="ghost" size="icon" onClick={fetchAnalytics}>
+                <RefreshCw size={16} className="text-gray-400" />
+            </Button>
+          </div>
           <div className="space-y-6">
-            {categories.map((cat) => (
+            {data.categories.map((cat) => (
               <div key={cat.name}>
                 <div className="mb-2 flex items-end justify-between">
                   <span className="text-sm font-bold text-gray-700">{cat.name}</span>
@@ -104,7 +146,11 @@ const FeedbackAnalytics: React.FC = () => {
                     <span className="ml-1 text-xs text-gray-400">/ 5.0</span>
                   </div>
                 </div>
-                <Progress value={(cat.score / 5) * 100} color={cat.color} height="h-3" />
+                <Progress 
+                    value={(cat.score / 5) * 100} 
+                    color={cat.score < 3 ? 'bg-red-500' : cat.score < 4.5 ? 'bg-blue-500' : 'bg-green-500'} 
+                    height="h-3" 
+                />
                 <p className="mt-1 text-right text-xs text-gray-400">{cat.count} reviews</p>
               </div>
             ))}
@@ -132,14 +178,18 @@ const FeedbackAnalytics: React.FC = () => {
           </div>
 
           <div className="custom-scrollbar max-h-[400px] flex-1 space-y-4 overflow-y-auto pr-2">
-            {reviews.map((review) => (
+            {data.reviews.map((review) => (
               <div
                 key={review.id}
                 className="rounded-2xl border border-gray-100 bg-gray-50 p-4 transition-all hover:bg-white hover:shadow-md"
               >
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <Avatar size="sm" src="" alt={review.name} className="bg-gray-200" />
+                    <Avatar 
+                        size="sm" 
+                        src={`https://ui-avatars.com/api/?name=${review.name}&background=random`} 
+                        alt={review.name} 
+                    />
                     <div>
                       <h5 className="text-sm font-bold text-gray-800">{review.name}</h5>
                       <span className="rounded border border-gray-100 bg-white px-2 py-0.5 text-[10px] font-bold uppercase text-gray-400">

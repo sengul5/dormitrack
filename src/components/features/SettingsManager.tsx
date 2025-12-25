@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Check,
   Shield,
@@ -7,6 +7,8 @@ import {
   Bell,
   User,
   Settings as SettingsIcon,
+  Loader2,
+  Save
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Button from '@ui/Button.component'
@@ -14,7 +16,7 @@ import { Input } from '@ui/Input.component'
 import Switch from '@ui/Switch.component'
 import Avatar from '@ui/Avatar.component'
 
-// Mock Hook
+// Dil Yönetimi Mock Hook (Gerçek projede Context'ten gelir)
 const useAppConfig = () => {
   const [lang, setLang] = useState<'en' | 'tr'>('en')
   return { lang, setLanguage: setLang }
@@ -23,8 +25,76 @@ const useAppConfig = () => {
 const SettingsManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile')
   const { lang, setLanguage } = useAppConfig()
+  
+  // KULLANICI STATE'İ
+  const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [userProfile, setUserProfile] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    photo: '',
+  })
 
-  // DİL VERİLERİ (Type Safe)
+  // ŞİFRE STATE'İ
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  })
+
+  // --- 1. KULLANICI BİLGİLERİNİ ÇEKME ---
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true)
+      try {
+        // BURASI İLERİDE: const data = await authService.getMe();
+        await new Promise((resolve) => setTimeout(resolve, 600)) // Simülasyon
+
+        setUserProfile({
+          firstName: 'Admin',
+          lastName: 'User',
+          email: 'admin@dormitrack.com',
+          photo: 'https://i.pravatar.cc/150?u=admin',
+        })
+      } catch (error) {
+        console.error('Profil yüklenemedi', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (activeTab === 'profile') {
+        fetchProfile()
+    }
+  }, [activeTab])
+
+  // --- 2. PROFİL GÜNCELLEME ---
+  const handleSaveProfile = async () => {
+    setIsSaving(true)
+    try {
+        // BURASI İLERİDE: await userService.updateProfile(userProfile);
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        alert('Profile updated successfully!')
+    } catch (error) {
+        alert('Failed to update profile.')
+    } finally {
+        setIsSaving(false)
+    }
+  }
+
+  // --- 3. ŞİFRE GÜNCELLEME ---
+  const handleUpdatePassword = async () => {
+    if (passwords.new !== passwords.confirm) {
+        alert('New passwords do not match!')
+        return
+    }
+    // API Call simülasyonu...
+    alert('Password update request sent.')
+    setPasswords({ current: '', new: '', confirm: '' })
+  }
+
+  // DİL VERİLERİ
   const text = {
     en: {
       tabs: { profile: 'Profile', security: 'Security', preferences: 'Preferences' },
@@ -124,10 +194,13 @@ const SettingsManager: React.FC = () => {
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
             <h3 className="mb-8 text-xl font-bold text-gray-800">{t.profile.title}</h3>
 
+            {loading ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin text-gray-400" /></div>
+            ) : (
             <div className="flex flex-col items-start gap-8 md:flex-row">
               <div className="flex flex-col items-center gap-4">
                 <Avatar
-                  src="https://i.pravatar.cc/150?u=admin"
+                  src={userProfile.photo}
                   size="lg"
                   className="h-32 w-32 border-4 border-gray-50"
                 />
@@ -138,15 +211,33 @@ const SettingsManager: React.FC = () => {
 
               <div className="w-full flex-1 space-y-6">
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <Input label={t.profile.name} defaultValue="Mesut Sefa" />
-                  <Input label={t.profile.last} defaultValue="Uçar" />
+                  <Input 
+                    label={t.profile.name} 
+                    value={userProfile.firstName} 
+                    onChange={(e) => setUserProfile({...userProfile, firstName: e.target.value})}
+                  />
+                  <Input 
+                    label={t.profile.last} 
+                    value={userProfile.lastName} 
+                    onChange={(e) => setUserProfile({...userProfile, lastName: e.target.value})}
+                  />
                 </div>
-                <Input label={t.profile.email} type="email" defaultValue="admin@dormitrack.com" />
+                <Input 
+                    label={t.profile.email} 
+                    type="email" 
+                    value={userProfile.email} 
+                    onChange={(e) => setUserProfile({...userProfile, email: e.target.value})}
+                    disabled // Email genelde değiştirilemez
+                />
                 <div className="flex justify-end pt-2">
-                  <Button size="lg">{t.profile.save}</Button>
+                  <Button size="lg" onClick={handleSaveProfile} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="animate-spin mr-2" size={18}/> : <Save size={18} className="mr-2"/>}
+                    {isSaving ? 'Saving...' : t.profile.save}
+                  </Button>
                 </div>
               </div>
             </div>
+            )}
           </div>
         )}
 
@@ -156,13 +247,32 @@ const SettingsManager: React.FC = () => {
             <div>
               <h3 className="mb-6 text-xl font-bold text-gray-800">{t.security.title}</h3>
               <div className="max-w-xl space-y-4">
-                <Input type="password" label={t.security.curPass} placeholder="••••••••" />
-                <Input type="password" label={t.security.newPass} placeholder="••••••••" />
-                <Input type="password" label={t.security.confirm} placeholder="••••••••" />
+                <Input 
+                    type="password" 
+                    label={t.security.curPass} 
+                    placeholder="••••••••" 
+                    value={passwords.current}
+                    onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                />
+                <Input 
+                    type="password" 
+                    label={t.security.newPass} 
+                    placeholder="••••••••" 
+                    value={passwords.new}
+                    onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                />
+                <Input 
+                    type="password" 
+                    label={t.security.confirm} 
+                    placeholder="••••••••" 
+                    value={passwords.confirm}
+                    onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                />
                 <div className="pt-2">
                   <Button
                     variant="ghost"
                     className="w-full bg-gray-800 px-6 text-white hover:bg-black sm:w-auto"
+                    onClick={handleUpdatePassword}
                   >
                     {t.security.updateBtn}
                   </Button>

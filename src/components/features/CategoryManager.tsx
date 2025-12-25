@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Wifi,
   Droplets,
@@ -21,6 +21,8 @@ import {
   Music,
   Settings,
   Check,
+  RefreshCw,
+  Loader2
 } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import Button from '@ui/Button.component'
@@ -32,7 +34,7 @@ interface CategoryItem {
   id: number
   name: string
   iconId: string
-  count: number
+  count: number // Aktif iş sayısı
 }
 
 interface IconDef {
@@ -64,35 +66,63 @@ const ICON_LIBRARY: IconDef[] = [
 const CategoryManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'requests' | 'complaints'>('requests')
   const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Edit State
   const [editingId, setEditingId] = useState<number | null>(null)
   const [catName, setCatName] = useState('')
   const [selectedIcon, setSelectedIcon] = useState('other')
 
-  // Data
-  const [reqCategories, setReqCategories] = useState<CategoryItem[]>([
-    { id: 1, name: 'Wifi & Internet', iconId: 'wifi', count: 12 },
-    { id: 2, name: 'Plumbing', iconId: 'water', count: 5 },
-    { id: 3, name: 'Electrical', iconId: 'electric', count: 3 },
-    { id: 4, name: 'Furniture', iconId: 'bed', count: 8 },
-  ])
+  // Data States
+  const [reqCategories, setReqCategories] = useState<CategoryItem[]>([])
+  const [compCategories, setCompCategories] = useState<CategoryItem[]>([])
 
-  const [compCategories, setCompCategories] = useState<CategoryItem[]>([
-    { id: 101, name: 'Noise Disturbance', iconId: 'sound', count: 4 },
-    { id: 102, name: 'Theft / Lost Item', iconId: 'security', count: 2 },
-    { id: 103, name: 'Hygiene Issue', iconId: 'clean', count: 6 },
-  ])
+  // --- VERİ ÇEKME ---
+  const fetchCategories = async () => {
+    setLoading(true)
+    try {
+      // Backend Simülasyonu
+      // const reqs = await categoryService.getRequests();
+      // const comps = await categoryService.getComplaints();
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      setReqCategories([
+        { id: 1, name: 'Wifi & Internet', iconId: 'wifi', count: 12 },
+        { id: 2, name: 'Plumbing', iconId: 'water', count: 5 },
+        { id: 3, name: 'Electrical', iconId: 'electric', count: 3 },
+        { id: 4, name: 'Furniture', iconId: 'bed', count: 8 },
+        { id: 5, name: 'Heating / AC', iconId: 'heat', count: 2 },
+      ])
+
+      setCompCategories([
+        { id: 101, name: 'Noise Disturbance', iconId: 'sound', count: 4 },
+        { id: 102, name: 'Theft / Lost Item', iconId: 'security', count: 2 },
+        { id: 103, name: 'Hygiene Issue', iconId: 'clean', count: 6 },
+        { id: 104, name: 'Security Breach', iconId: 'alert', count: 0 },
+      ])
+    } catch (error) {
+      console.error('Kategoriler yüklenemedi', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
 
   const currentList = activeTab === 'requests' ? reqCategories : compCategories
   const setCurrentList = activeTab === 'requests' ? setReqCategories : setCompCategories
 
   // --- Actions ---
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Delete this category?')) {
-      setCurrentList(currentList.filter((c) => c.id !== id))
-    }
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this category?')) return
+
+    // Optimistic Update
+    setCurrentList(currentList.filter((c) => c.id !== id))
+    // await categoryService.delete(id);
   }
 
   const openAddModal = () => {
@@ -109,28 +139,36 @@ const CategoryManager: React.FC = () => {
     setShowModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!catName) return
+    setIsSaving(true)
 
-    if (editingId) {
-      // Update
-      setCurrentList(
-        currentList.map((item) =>
-          item.id === editingId ? { ...item, name: catName, iconId: selectedIcon } : item
+    try {
+        await new Promise((resolve) => setTimeout(resolve, 500)) // Simülasyon
+
+        if (editingId) {
+        // Update
+        setCurrentList(
+            currentList.map((item) =>
+            item.id === editingId ? { ...item, name: catName, iconId: selectedIcon } : item
+            )
         )
-      )
-    } else {
-      // Create
-      const newItem: CategoryItem = {
-        id: Date.now(),
-        name: catName,
-        iconId: selectedIcon,
-        count: 0,
-      }
-      setCurrentList([...currentList, newItem])
+        } else {
+        // Create
+        const newItem: CategoryItem = {
+            id: Date.now(),
+            name: catName,
+            iconId: selectedIcon,
+            count: 0,
+        }
+        setCurrentList([...currentList, newItem])
+        }
+        setShowModal(false)
+    } catch (error) {
+        console.error('Kayıt başarısız', error)
+    } finally {
+        setIsSaving(false)
     }
-
-    setShowModal(false)
   }
 
   const getIconComponent = (id: string) => {
@@ -146,32 +184,38 @@ const CategoryManager: React.FC = () => {
         <div>
           <CardTitle icon={Settings}>System Categories</CardTitle>
           <p className="mt-1 text-sm font-normal text-gray-500">
-            Define options available for student requests.
+            {loading ? 'Loading configuration...' : 'Define options available for student requests.'}
           </p>
         </div>
 
-        {/* Custom Tab Switcher */}
-        <div className="flex rounded-xl border border-gray-100 bg-gray-50 p-1">
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`rounded-lg px-6 py-2 text-sm font-bold transition-all ${
-              activeTab === 'requests'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Request Types
-          </button>
-          <button
-            onClick={() => setActiveTab('complaints')}
-            className={`rounded-lg px-6 py-2 text-sm font-bold transition-all ${
-              activeTab === 'complaints'
-                ? 'bg-white text-red-600 shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            Complaint Types
-          </button>
+        <div className="flex items-center gap-3">
+             <Button variant="ghost" size="icon" onClick={fetchCategories}>
+                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+             </Button>
+
+            {/* Custom Tab Switcher */}
+            <div className="flex rounded-xl border border-gray-100 bg-gray-50 p-1">
+            <button
+                onClick={() => setActiveTab('requests')}
+                className={`rounded-lg px-6 py-2 text-sm font-bold transition-all ${
+                activeTab === 'requests'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+            >
+                Request Types
+            </button>
+            <button
+                onClick={() => setActiveTab('complaints')}
+                className={`rounded-lg px-6 py-2 text-sm font-bold transition-all ${
+                activeTab === 'complaints'
+                    ? 'bg-white text-red-600 shadow-sm'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+            >
+                Complaint Types
+            </button>
+            </div>
         </div>
       </CardHeader>
 
@@ -183,6 +227,9 @@ const CategoryManager: React.FC = () => {
           </Button>
         </div>
 
+        {loading ? (
+             <div className="flex h-40 items-center justify-center text-gray-400">Loading categories...</div>
+        ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {currentList.map((item) => (
             <div
@@ -218,11 +265,12 @@ const CategoryManager: React.FC = () => {
               <h3 className="text-sm font-bold text-gray-700">{item.name}</h3>
               <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
                 <span className="text-xs font-medium text-gray-400">{item.count} Active Items</span>
-                <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                <span className={`h-2 w-2 rounded-full ${item.count > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></span>
               </div>
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* --- MODAL --- */}
@@ -276,7 +324,9 @@ const CategoryManager: React.FC = () => {
               variant={activeTab === 'requests' ? 'primary' : 'danger'}
               className="flex-1"
               onClick={handleSave}
+              disabled={isSaving}
             >
+              {isSaving ? <Loader2 className="animate-spin mr-2" size={16}/> : null}
               {editingId ? 'Update' : 'Save'}
             </Button>
           </div>

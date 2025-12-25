@@ -1,4 +1,6 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4321/api'
+// 1. DÜZELTME: 'process.env' yerine 'import.meta.env' kullanıyoruz.
+// Astro ve Vite projelerinde standart budur.
+const BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:4321/api'
 
 export class ApiError extends Error {
   status: number
@@ -15,13 +17,22 @@ export class ApiError extends Error {
 async function httpClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${BASE_URL}${endpoint}`
 
-  // Client-side'da token'ı LocalStorage'dan alabiliriz
+  // Client-side'da token'ı LocalStorage'dan al
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
 
-  const headers: HeadersInit = {
+  // Varsayılan Headerlar
+  const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+
+  // Gelen headerları birleştir
+  const headers = { ...defaultHeaders, ...(options.headers as Record<string, string>) }
+
+  // 2. DÜZELTME: Eğer Content-Type boş string (FormData için) gönderildiyse,
+  // header'dan tamamen siliyoruz ki tarayıcı kendi 'multipart/form-data' sınırlarını (boundary) eklesin.
+  if (headers['Content-Type'] === '') {
+    delete headers['Content-Type']
   }
 
   const config: RequestInit = {
@@ -49,7 +60,8 @@ async function httpClient<T>(endpoint: string, options: RequestInit = {}): Promi
     if (error instanceof ApiError) {
       throw error
     }
-    // Ağ hataları vs.
+    // Ağ hataları (Backend kapalıysa buraya düşer)
+    console.error(`API Error [${endpoint}]:`, error)
     throw new ApiError(error instanceof Error ? error.message : 'Network Error', 500)
   }
 }
@@ -69,13 +81,13 @@ export const client = {
 
   delete: <T>(endpoint: string) => httpClient<T>(endpoint, { method: 'DELETE' }),
 
-  // Dosya yükleme gibi özel durumlar için (FormData)
+  // Dosya yükleme (FormData) için özel metod
   postForm: <T>(endpoint: string, formData: FormData) => {
-    // Content-Type header'ını siliyoruz ki tarayıcı boundary'i kendi eklesin
+    // Content-Type'ı boş göndererek yukarıdaki silme mantığını tetikliyoruz
     return httpClient<T>(endpoint, {
       method: 'POST',
       body: formData,
-      headers: { 'Content-Type': '' } as any, // Type-casting to bypass helper override
+      headers: { 'Content-Type': '' },
     })
   },
 }

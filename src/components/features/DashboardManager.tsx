@@ -6,24 +6,32 @@ import NewRequests from './NewRequests'
 import NewComplaints from './NewComplaints'
 import FeedbackChart from './FeedbackChart'
 import AvailableStaff from './AvailableStaff'
-import StudentDashboard from './StudentDashboard'
+import StudentDashboard from './StudentDashboard' // .tsx olan dosyanı çağırır
 import StaffDashboard from './StaffDashboard'
 
 interface DashboardManagerProps {
-  role?: 'admin' | 'staff' | 'student' // Opsiyonel, hook yoksa prop'tan alabilir
+  role?: 'admin' | 'staff' | 'student'
 }
 
 const DashboardManager: React.FC<DashboardManagerProps> = () => {
-  const { role } = useAppConfig() // Eğer hook kullanacaksan burayı aç
+  // Config'den rolü çekiyoruz
+  const { role } = useAppConfig()
 
+  // 🛠️ DEBUG: Tarayıcı konsoluna (F12) bak.
+  // Eğer burada "Aktif Rol: admin" yazıyorsa, sorun useAppConfig dosyasındadır.
+  console.log('DashboardManager -> Aktif Rol:', role)
+
+  // 1. ÖĞRENCİ GÖRÜNÜMÜ
   if (role === 'student') {
     return <StudentDashboard />
   }
 
+  // 2. PERSONEL GÖRÜNÜMÜ
   if (role === 'staff') {
     return <StaffDashboard />
   }
 
+  // 3. ADMIN GÖRÜNÜMÜ (Varsayılan)
   return (
     <>
       <StatsRow />

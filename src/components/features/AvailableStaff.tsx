@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Phone, MessageSquare } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import Avatar from '@ui/Avatar.component'
@@ -14,43 +14,63 @@ interface StaffMember {
 }
 
 const AvailableStaff: React.FC = () => {
-  const staff: StaffMember[] = [
-    {
-      id: 1,
-      name: 'Carl Max',
-      role: 'Cleaner',
-      status: 'active',
-      img: 'https://i.pravatar.cc/150?u=60',
-    },
-    {
-      id: 2,
-      name: 'Necder Zorluer',
-      role: 'Cleaner',
-      status: 'busy',
-      img: 'https://i.pravatar.cc/150?u=61',
-    },
-    {
-      id: 3,
-      name: 'Beyza Beyaz',
-      role: 'IT&Network',
-      status: 'active',
-      img: 'https://i.pravatar.cc/150?u=62',
-    },
-    {
-      id: 4,
-      name: 'Mustafa Dönmez',
-      role: 'Security',
-      status: 'offline',
-      img: 'https://i.pravatar.cc/150?u=63',
-    },
-    {
-      id: 5,
-      name: 'George Stalge',
-      role: 'Maintenance',
-      status: 'active',
-      img: 'https://i.pravatar.cc/150?u=64',
-    },
-  ]
+  const [staffList, setStaffList] = useState<StaffMember[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // BURASI İLERİDE SERVİSE BAĞLANACAK
+    // Örn: const data = await staffService.getAvailableStaff();
+    const fetchStaff = async () => {
+      try {
+        // Backend varmış gibi davranıyoruz
+        await new Promise((resolve) => setTimeout(resolve, 1200))
+
+        setStaffList([
+          {
+            id: 1,
+            name: 'Carl Max',
+            role: 'Cleaner',
+            status: 'active',
+            img: 'https://i.pravatar.cc/150?u=60',
+          },
+          {
+            id: 2,
+            name: 'Necder Zorluer',
+            role: 'Cleaner',
+            status: 'busy',
+            img: 'https://i.pravatar.cc/150?u=61',
+          },
+          {
+            id: 3,
+            name: 'Beyza Beyaz',
+            role: 'IT&Network',
+            status: 'active',
+            img: 'https://i.pravatar.cc/150?u=62',
+          },
+          {
+            id: 4,
+            name: 'Mustafa Dönmez',
+            role: 'Security',
+            status: 'offline',
+            img: 'https://i.pravatar.cc/150?u=63',
+          },
+          {
+            id: 5,
+            name: 'George Stalge',
+            role: 'Maintenance',
+            status: 'active',
+            img: 'https://i.pravatar.cc/150?u=64',
+          },
+        ])
+      } catch (error) {
+        console.error('Personel listesi alınamadı:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStaff()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -63,21 +83,37 @@ const AvailableStaff: React.FC = () => {
     }
   }
 
+  // Aktif Personel Sayısı
+  const activeCount = staffList.filter((s) => s.status === 'active').length
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Available Personals</CardTitle>
+        </CardHeader>
+        <div className="p-6 text-center text-sm text-gray-400">Loading staff list...</div>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Available Personals</CardTitle>
-        <Badge variant="info">{staff.filter((s) => s.status === 'active').length} Active</Badge>
+        <Badge variant="info">{activeCount} Active</Badge>
       </CardHeader>
 
       <div className="space-y-4 p-6">
-        {staff.map((person) => (
+        {staffList.map((person) => (
           <div key={person.id} className="group flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <Avatar src={person.img} alt={person.name} />
                 <span
-                  className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusColor(person.status)}`}
+                  className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusColor(
+                    person.status
+                  )}`}
                 ></span>
               </div>
               <div>

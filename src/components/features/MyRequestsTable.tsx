@@ -1,19 +1,30 @@
-import React, { useState } from 'react'
-import { Eye, Star, Calendar, MapPin } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Eye, Star, MapPin } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
 import Modal from '@ui/Modal.component'
 import GiveFeedbackModal from './GiveFeedbackModal'
 
+// SERVİS BAĞLANTISI
+import { requestService } from '@/services/requests'
+
 interface MyRequest {
   id: number
   category: string
   room: string
-  priority: 'High' | 'Medium' | 'Low'
+  // DÜZELTME 1: 'Resolved' buraya eklendi ki TS hata vermesin
+  priority: 'High' | 'Medium' | 'Low' | 'Critical'
   date: string
-  status: 'In Progress' | 'Pending' | 'Completed'
+  status: 'In Progress' | 'Pending' | 'Completed' | 'Resolved' 
   desc: string
   rated?: boolean
   rating?: number
@@ -23,49 +34,38 @@ const MyRequestsTable: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<MyRequest | null>(null)
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [itemToRate, setItemToRate] = useState<MyRequest | null>(null)
+  
+  const [myRequests, setMyRequests] = useState<MyRequest[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [myRequests, setMyRequests] = useState<MyRequest[]>([
-    {
-      id: 1,
-      category: 'Wifi / Internet',
-      room: 'Room 101',
-      priority: 'High',
-      date: '15.10.2025',
-      status: 'In Progress',
-      desc: 'Internet connection keeps dropping.',
-    },
-    {
-      id: 4,
-      category: 'Heating',
-      room: 'Room 101',
-      priority: 'Low',
-      date: '13.10.2025',
-      status: 'Pending',
-      desc: 'Radiator is not warm enough.',
-    },
-    {
-      id: 9,
-      category: 'Furniture',
-      room: 'Lobby',
-      priority: 'Medium',
-      date: '01.09.2025',
-      status: 'Completed',
-      desc: 'Chair leg was broken.',
-      rated: false,
-      rating: 0,
-    },
-    {
-      id: 10,
-      category: 'Plumbing',
-      room: 'Room 101',
-      priority: 'High',
-      date: '05.09.2025',
-      status: 'Completed',
-      desc: 'Sink was leaking.',
-      rated: true,
-      rating: 5,
-    },
-  ])
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await requestService.getAll()
+        const data = Array.isArray(response) ? response : (response as any)?.data || []
+
+        const formattedData: MyRequest[] = data.map((item: any) => ({
+          id: item.id,
+          category: item.category,
+          room: item.room || 'Unknown',
+          priority: item.priority || 'Low',
+          date: item.date || new Date().toLocaleDateString('tr-TR'),
+          status: item.status || 'Pending',
+          desc: item.desc || 'No description provided.',
+          rated: false,
+          rating: 0,
+        }))
+
+        setMyRequests(formattedData.reverse())
+      } catch (error) {
+        console.error('Talepler yüklenemedi:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRequests()
+  }, [])
 
   const handleOpenRate = (item: MyRequest) => {
     setItemToRate(item)
@@ -83,9 +83,17 @@ const MyRequestsTable: React.FC = () => {
   }
 
   const getPriorityVariant = (p: string) => {
-    if (p === 'High') return 'dangerSoft'
+    if (p === 'High' || p === 'Critical') return 'dangerSoft'
     if (p === 'Medium') return 'warning'
     return 'success'
+  }
+
+  if (loading) {
+    return (
+      <Card className="flex h-full flex-col p-6">
+        <div className="text-center text-gray-400">Loading requests...</div>
+      </Card>
+    )
   }
 
   return (
@@ -105,58 +113,68 @@ const MyRequestsTable: React.FC = () => {
             <TableHead className="pr-6 text-right">Action</TableHead>
           </TableHeader>
           <TableBody>
-            {myRequests.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="pl-6 font-bold text-gray-800">{item.category}</TableCell>
-                <TableCell className="text-center">
-                  <span className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
-                    {item.room}
-                  </span>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-gray-500">{item.date}</TableCell>
-                <TableCell>
-                  <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      item.status === 'Completed'
-                        ? 'success'
-                        : item.status === 'In Progress'
-                          ? 'info'
-                          : 'outline'
-                    }
-                  >
-                    {item.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="pr-6 text-right">
-                  {item.status === 'Completed' && !item.rated ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-yellow-200 text-yellow-600 hover:bg-yellow-50"
-                      onClick={() => handleOpenRate(item)}
-                    >
-                      <Star size={14} className="mr-1" /> Rate
-                    </Button>
-                  ) : item.rated ? (
-                    <div className="inline-flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500">
-                      <Star size={12} className="fill-yellow-400 text-yellow-400" /> {item.rating}.0
-                    </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="bg-blue-50 text-blue-600"
-                      onClick={() => setSelectedRequest(item)}
-                    >
-                      <Eye size={16} className="mr-1" /> View
-                    </Button>
-                  )}
-                </TableCell>
+            {myRequests.length === 0 ? (
+              <TableRow>
+                {/* DÜZELTME 2: TableCell yerine normal td kullandık (colSpan hatası için) */}
+                <td colSpan={6} className="h-24 text-center text-gray-500">
+                  You haven't made any requests yet.
+                </td>
               </TableRow>
-            ))}
+            ) : (
+              myRequests.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="pl-6 font-bold text-gray-800">{item.category}</TableCell>
+                  <TableCell className="text-center">
+                    <span className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
+                      {item.room}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-gray-500">{item.date}</TableCell>
+                  <TableCell>
+                    <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        item.status === 'Completed' || item.status === 'Resolved'
+                          ? 'success'
+                          : item.status === 'In Progress'
+                            ? 'info'
+                            : 'outline'
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="pr-6 text-right">
+                    {(item.status === 'Completed' || item.status === 'Resolved') && !item.rated ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-yellow-200 text-yellow-600 hover:bg-yellow-50"
+                        onClick={() => handleOpenRate(item)}
+                      >
+                        <Star size={14} className="mr-1" /> Rate
+                      </Button>
+                    ) : item.rated ? (
+                      <div className="inline-flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs font-bold text-gray-500">
+                        <Star size={12} className="fill-yellow-400 text-yellow-400" />{' '}
+                        {item.rating}.0
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="bg-blue-50 text-blue-600"
+                        onClick={() => setSelectedRequest(item)}
+                      >
+                        <Eye size={16} className="mr-1" /> View
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
