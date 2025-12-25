@@ -1,0 +1,9 @@
+---
+import MainLayout from '@layouts/MainLayout.astro'
+import DashboardManager from '@/components/features/dashboard/DashboardManager'
+---
+
+<MainLayout title="Dashboard">
+  {/* Artık tüm mantık DashboardManager içinde */}
+  <DashboardManager client:load />
+</MainLayout>

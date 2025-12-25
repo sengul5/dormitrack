@@ -1,0 +1,11 @@
+---
+import MainLayout from '@layouts/MainLayout.astro'
+import SettingsManager from '@/components/features/settings/SettingsManager'
+---
+
+<MainLayout title="Settings">
+  {/* SETTINGS AREA */}
+  <div class="h-full pb-10">
+    <SettingsManager client:load />
+  </div>
+</MainLayout>

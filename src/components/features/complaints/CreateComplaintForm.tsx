@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Button from '@ui/Button.component'
+import toast from 'react-hot-toast' // Toast eklendi
 
 const CreateComplaintForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false)
@@ -18,6 +19,7 @@ const CreateComplaintForm: React.FC = () => {
   const [priority, setPriority] = useState('Low')
   const [desc, setDesc] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const categories = [
     { id: 'noise', name: 'Noise', icon: VolumeX },
@@ -27,9 +29,40 @@ const CreateComplaintForm: React.FC = () => {
     { id: 'other', name: 'Other Issue', icon: AlertTriangle },
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+
+    if (!category || !desc) {
+      toast.error('Please select a category and describe the issue.')
+      return
+    }
+
+    setLoading(true)
+    const toastId = toast.loading('Submitting report...')
+
+    try {
+      // Dosya yükleme (File Upload) backend'de henüz olmadığı için
+      // Sadece metin verilerini gönderiyoruz.
+      const res = await fetch('/api/complaints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category,
+          room: '101', // Normalde user session veya inputtan gelir
+          priority,
+          description: desc,
+        }),
+      })
+
+      if (!res.ok) throw new Error('Submission failed')
+
+      toast.success('Complaint received!', { id: toastId })
+      setSubmitted(true)
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to submit complaint', { id: toastId })
+      setLoading(false)
+    }
   }
 
   if (submitted) {
@@ -43,7 +76,7 @@ const CreateComplaintForm: React.FC = () => {
           Your report has been received confidentially.
         </p>
         <div className="flex gap-4">
-          <a href="/">
+          <a href="/dashboard">
             <Button variant="outline">Dashboard</Button>
           </a>
           <a href="/my-complaints">
@@ -80,6 +113,7 @@ const CreateComplaintForm: React.FC = () => {
             className="h-40 w-full resize-none rounded-2xl border border-gray-100 bg-gray-50 p-4 font-medium text-gray-700 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
             placeholder="Describe what happened..."
             onChange={(e) => setDesc(e.target.value)}
+            value={desc}
           ></textarea>
         </div>
       </Card>
@@ -120,9 +154,10 @@ const CreateComplaintForm: React.FC = () => {
           <Button
             onClick={handleSubmit}
             variant="danger"
+            disabled={loading}
             className="mt-6 w-full py-4 text-lg shadow-xl shadow-red-200"
           >
-            Submit Report <ArrowRight size={20} />
+            {loading ? 'Submitting...' : 'Submit Report'} <ArrowRight size={20} />
           </Button>
         </Card>
       </div>

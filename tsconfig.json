@@ -11,12 +11,13 @@
       "@components/*": ["src/components/*"],
       "@layouts/*": ["src/layouts/*"],
       "@lib/*": ["src/lib/*"],
+      "@server/*": ["src/server/*"],
       "@utils/*": ["src/utils/*"],
       "@assets/*": ["src/assets/*"]
     },
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-
+    "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true
   }

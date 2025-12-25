@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
-import { Search, Archive, Megaphone, Eye, MapPin, Calendar, User } from 'lucide-react'
+import { Archive, CheckCircle, Eye, MapPin, Calendar, User } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
 import Avatar from '@ui/Avatar.component'
 import Modal from '@ui/Modal.component'
-import AssignStaffModal from '@features/AssignStaffModal'
+import AssignStaffModal from '../complaints/AssignStaffModal'
 
 // Types
-interface Complaint {
+interface RequestItem {
   id: number
   name: string
   img: string
@@ -17,88 +17,76 @@ interface Complaint {
   room: string
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
   date: string
-  status: 'Pending' | 'Investigating' | 'Open' | 'Resolved'
+  status: 'Active' | 'In Progress' | 'Resolved'
   desc: string
 }
 
-const ComplaintsTable: React.FC = () => {
+const RequestTable: React.FC = () => {
   const [viewHistory, setViewHistory] = useState(false)
-  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null)
+  const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null)
   const [showAssignModal, setShowAssignModal] = useState(false)
 
-  // DATA
-  const [activeComplaints, setActiveComplaints] = useState<Complaint[]>([
+  const [activeData, setActiveData] = useState<RequestItem[]>([
     {
-      id: 301,
-      name: 'Alice Wonderland',
-      img: 'https://i.pravatar.cc/150?u=30',
-      category: 'Noise Disturbance',
-      room: '404',
-      priority: 'High',
-      date: '01.11.2025',
-      status: 'Pending',
-      desc: "Yan odadaki (405) öğrenciler gece 3'e kadar yüksek sesle müzik dinliyor.",
-    },
-    {
-      id: 302,
-      name: 'Bob Marley',
-      img: 'https://i.pravatar.cc/150?u=31',
-      category: 'Theft / Lost Item',
+      id: 1,
+      name: 'James Carter',
+      img: 'https://i.pravatar.cc/150?u=10',
+      category: 'Wifi / Internet',
       room: '101',
-      priority: 'Critical',
-      date: '02.11.2025',
-      status: 'Investigating',
-      desc: 'Spor salonunda bıraktığım kulaklığım çalındı.',
+      priority: 'High',
+      date: '15.10.2025',
+      status: 'Active',
+      desc: 'İnternet bağlantısı sürekli kopuyor.',
     },
     {
-      id: 303,
-      name: 'Charlie Chaplin',
-      img: 'https://i.pravatar.cc/150?u=32',
-      category: 'Hygiene Issue',
-      room: 'Kitchen',
+      id: 2,
+      name: 'Sofia Martinez',
+      img: 'https://i.pravatar.cc/150?u=11',
+      category: 'Room Maintenance',
+      room: '204',
       priority: 'Medium',
-      date: '03.11.2025',
-      status: 'Open',
-      desc: '3. Kat ortak mutfağı çok kirli bırakılıyor.',
+      date: '14.10.2025',
+      status: 'Active',
+      desc: 'Dolap kapağı menteşesinden çıktı.',
     },
     {
-      id: 304,
-      name: 'Donald Trump',
-      img: 'https://i.pravatar.cc/150?u=33',
-      category: 'Rule Violation',
-      room: 'Lobby',
-      priority: 'Low',
-      date: '04.11.2025',
-      status: 'Pending',
-      desc: 'Lobi alanında izinsiz afiş asılması.',
+      id: 3,
+      name: 'Daniel Lee',
+      img: 'https://i.pravatar.cc/150?u=12',
+      category: 'Plumbing',
+      room: '305',
+      priority: 'High',
+      date: '17.10.2025',
+      status: 'Active',
+      desc: 'Lavabo altından su damlatıyor.',
     },
   ])
 
-  const historyComplaints: Complaint[] = [
+  const historyData: RequestItem[] = [
     {
-      id: 299,
-      name: 'John Doe',
-      img: 'https://i.pravatar.cc/150?u=40',
-      category: 'Rule Violation',
-      room: '202',
-      priority: 'Low',
-      date: '20.10.2025',
+      id: 99,
+      name: 'Michael Scott',
+      img: 'https://i.pravatar.cc/150?u=20',
+      category: 'Cleaning',
+      room: 'Lobby',
+      priority: 'Medium',
+      date: '01.09.2025',
       status: 'Resolved',
-      desc: 'Odaya yasaklı elektrikli ısıtıcı sokulmuştu.',
+      desc: 'Koridorun temizlenmesi gerekiyordu.',
     },
   ]
 
-  const data = viewHistory ? historyComplaints : activeComplaints
+  const data = viewHistory ? historyData : activeData
 
   const handleAssignStaff = (staff: any) => {
-    if (selectedComplaint) {
-      setActiveComplaints((prev) =>
+    if (selectedRequest) {
+      setActiveData((prev) =>
         prev.map((item) =>
-          item.id === selectedComplaint.id ? { ...item, status: 'Investigating' } : item
+          item.id === selectedRequest.id ? { ...item, status: 'In Progress' } : item
         )
       )
       setShowAssignModal(false)
-      setSelectedComplaint(null)
+      setSelectedRequest(null)
     }
   }
 
@@ -120,21 +108,18 @@ const ComplaintsTable: React.FC = () => {
       <CardHeader className="flex-col items-center gap-4 md:flex-row">
         <div>
           <CardTitle
-            icon={viewHistory ? Archive : Megaphone}
-            className={viewHistory ? '' : 'text-red-600'}
+            icon={viewHistory ? Archive : CheckCircle}
+            className={viewHistory ? '' : 'text-blue-600'}
           >
-            {viewHistory ? 'Complaint Archive' : 'Active Complaints'}
+            {viewHistory ? 'Archive' : 'Requests Center'}
           </CardTitle>
           <p className="mt-1 pl-1 text-sm text-gray-500">
-            {viewHistory
-              ? 'Review past disciplinary records.'
-              : 'Manage behavioral and critical issues.'}
+            {viewHistory ? 'Past completed tasks.' : 'Manage current technical issues.'}
           </p>
         </div>
-
-        <div className="ml-auto flex gap-3">
+        <div className="ml-auto">
           <Button
-            variant={viewHistory ? 'danger' : 'outline'}
+            variant={viewHistory ? 'primary' : 'outline'}
             onClick={() => setViewHistory(!viewHistory)}
           >
             {viewHistory ? 'Back to Active' : 'History'}
@@ -173,10 +158,10 @@ const ComplaintsTable: React.FC = () => {
                 <TableCell>
                   <Badge
                     variant={
-                      item.status === 'Pending'
+                      item.status === 'Active'
                         ? 'dangerSoft'
-                        : item.status === 'Investigating'
-                          ? 'info'
+                        : item.status === 'In Progress'
+                          ? 'warning'
                           : 'success'
                     }
                   >
@@ -189,7 +174,7 @@ const ComplaintsTable: React.FC = () => {
                     size="sm"
                     variant="ghost"
                     className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-                    onClick={() => setSelectedComplaint(item)}
+                    onClick={() => setSelectedRequest(item)}
                   >
                     <Eye size={16} /> Details
                   </Button>
@@ -200,42 +185,41 @@ const ComplaintsTable: React.FC = () => {
         </Table>
       </div>
 
-      {/* DETAY MODALI */}
       <Modal
-        isOpen={!!selectedComplaint}
-        onClose={() => setSelectedComplaint(null)}
-        title={`Complaint #${selectedComplaint?.id}`}
+        isOpen={!!selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        title={`Request #${selectedRequest?.id}`}
       >
-        {selectedComplaint && (
+        {selectedRequest && (
           <div className="space-y-6">
             <div className="flex items-center gap-5">
-              <Avatar size="lg" src={selectedComplaint.img} alt={selectedComplaint.name} />
+              <Avatar size="lg" src={selectedRequest.img} alt={selectedRequest.name} />
               <div>
-                <h4 className="text-xl font-bold text-gray-900">{selectedComplaint.name}</h4>
+                <h4 className="text-xl font-bold text-gray-900">{selectedRequest.name}</h4>
                 <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1.5">
-                    <MapPin size={14} /> Room {selectedComplaint.room}
+                    <MapPin size={14} /> Room {selectedRequest.room}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Calendar size={14} /> {selectedComplaint.date}
+                    <Calendar size={14} /> {selectedRequest.date}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-red-100 bg-red-50 p-4">
-              <label className="mb-2 block text-xs font-bold uppercase text-red-400">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+              <label className="mb-2 block text-xs font-bold uppercase text-gray-400">
                 Description
               </label>
-              <p className="text-sm font-medium text-gray-700">"{selectedComplaint.desc}"</p>
+              <p className="text-sm font-medium text-gray-700">"{selectedRequest.desc}"</p>
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button variant="ghost" onClick={() => setSelectedComplaint(null)}>
+              <Button variant="ghost" onClick={() => setSelectedRequest(null)}>
                 Close
               </Button>
-              <Button variant="danger" onClick={() => setShowAssignModal(true)}>
-                <User size={16} /> Assign Investigation
+              <Button onClick={() => setShowAssignModal(true)}>
+                <User size={16} /> Assign Staff
               </Button>
             </div>
           </div>
@@ -246,10 +230,10 @@ const ComplaintsTable: React.FC = () => {
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         onAssign={handleAssignStaff}
-        taskTitle={selectedComplaint?.category}
+        taskTitle={selectedRequest?.category}
       />
     </Card>
   )
 }
 
-export default ComplaintsTable
+export default RequestTable
