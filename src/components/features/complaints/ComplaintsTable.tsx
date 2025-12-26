@@ -6,7 +6,7 @@ import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
 import Avatar from '@ui/Avatar.component'
 import Modal from '@ui/Modal.component'
-import AssignStaffModal from './AssignStaffModal' // Dosya yoluna dikkat
+import AssignStaffModal from './AssignStaffModal'
 import toast from 'react-hot-toast'
 
 interface Complaint {
@@ -92,20 +92,20 @@ const ComplaintsTable: React.FC = () => {
 
   return (
     <Card className="flex h-full flex-col">
-      <CardHeader className="flex-col items-center gap-4 md:flex-row">
-        <div>
-          <CardTitle
-            icon={viewHistory ? Archive : Megaphone}
-            className={viewHistory ? '' : 'text-red-600'}
-          >
-            {viewHistory ? 'Complaint Archive' : 'Active Complaints'}
-          </CardTitle>
-          <p className="mt-1 pl-1 text-sm text-gray-500">
-            {viewHistory ? 'Review past records.' : 'Manage critical issues.'}
-          </p>
-        </div>
+      <CardHeader className="flex-col gap-4">
+        <div className="flex w-full items-center justify-between">
+          <div>
+            <CardTitle
+              icon={viewHistory ? Archive : Megaphone}
+              className={viewHistory ? '' : 'text-red-600'}
+            >
+              {viewHistory ? 'Complaint Archive' : 'Active Complaints'}
+            </CardTitle>
+            <p className="mt-1 pl-1 text-sm text-gray-500">
+              {viewHistory ? 'Review past records.' : 'Manage critical issues.'}
+            </p>
+          </div>
 
-        <div className="ml-auto flex gap-3">
           <Button
             variant={viewHistory ? 'danger' : 'outline'}
             onClick={() => setViewHistory(!viewHistory)}
@@ -127,7 +127,7 @@ const ComplaintsTable: React.FC = () => {
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="pr-6 text-right">Action</TableHead>
+              <TableHead className="pr-6">Action</TableHead>
             </TableHeader>
             <TableBody>
               {complaints.length === 0 ? (
@@ -169,7 +169,7 @@ const ComplaintsTable: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-gray-400">{item.date}</TableCell>
-                    <TableCell className="pr-6 text-right">
+                    <TableCell className="pr-6">
                       <Button
                         size="sm"
                         variant="ghost"
