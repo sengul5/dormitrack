@@ -4,36 +4,81 @@ import { Card } from '@ui/Card.component'
 import Badge from '@ui/Badge.component'
 import toast from 'react-hot-toast'
 
-// API'den gelen veri tipi (MyTasks.tsx ile uyumlu)
+// API'den gelen veri tipi
 interface Task {
   id: number
-  type: string // 'Request' | 'Complaint'
+  type: string
   title: string
-  location: string // API 'location' dönüyor, UI'da 'room' olarak kullanacağız
+  location: string
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
   date: string
   status: string
   desc: string
 }
 
+// --- MOCK DATA ---
+const MOCK_TASKS: Task[] = [
+  {
+    id: 101,
+    type: 'Request',
+    title: 'WiFi Connection Issue',
+    location: 'Room 204',
+    priority: 'High',
+    date: '2025-12-27 10:30',
+    status: 'In Progress',
+    desc: 'Student cannot connect to the eduroam network.'
+  },
+  {
+    id: 102,
+    type: 'Complaint',
+    title: 'Water Leakage',
+    location: 'Kitchen Area',
+    priority: 'Critical',
+    date: '2025-12-27 09:15',
+    status: 'Pending',
+    desc: 'Pipe burst under the sink.'
+  },
+  {
+    id: 103,
+    type: 'Request',
+    title: 'New Key Card',
+    location: 'Reception',
+    priority: 'Low',
+    date: '2025-12-27 11:00',
+    status: 'Pending',
+    desc: 'Issue a new card for the new resident.'
+  },
+  {
+    id: 104,
+    type: 'Request',
+    title: 'Lightbulb Replacement',
+    location: 'Room 305',
+    priority: 'Medium',
+    date: '2025-12-26 14:00',
+    status: 'Completed',
+    desc: 'Main light is flickering.'
+  }
+]
+
 const StaffDashboard: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
-
-  // İstatistikleri state'de tutuyoruz
   const [stats, setStats] = useState({ pending: 0, completed: 0, urgent: 0 })
 
   useEffect(() => {
     const fetchTasks = async () => {
+      setLoading(true)
       try {
-        // Personelin üzerindeki görevleri çek
-        const res = await fetch('/api/staff/tasks')
-        if (!res.ok) throw new Error('Veri çekilemedi')
-
-        const data: Task[] = await res.json()
+        // Backend varmış gibi davranıyoruz
+        // İleride burayı tekrar açarsın: const res = await fetch('/api/staff/tasks')
+        
+        // Simülasyon için 800ms gecikme ekleyelim
+        await new Promise((resolve) => setTimeout(resolve, 800))
+        
+        const data: Task[] = MOCK_TASKS
         setTasks(data)
 
-        // İstatistikleri hesapla
+        // İstatistik hesaplama mantığın aynı kalıyor
         const pendingCount = data.filter(
           (t) => t.status !== 'Completed' && t.status !== 'Resolved'
         ).length
@@ -59,18 +104,24 @@ const StaffDashboard: React.FC = () => {
     fetchTasks()
   }, [])
 
-  // Görevleri filtrele
+  // Filtrelemeler
   const urgentTasks = tasks.filter(
     (t) => (t.priority === 'High' || t.priority === 'Critical') && t.status !== 'Completed'
   )
 
-  // Acil olmayan ve tamamlanmamış diğer işler (Upcoming)
   const upcomingTasks = tasks.filter(
     (t) => t.priority !== 'High' && t.priority !== 'Critical' && t.status !== 'Completed'
   )
 
   if (loading) {
-    return <div className="p-10 text-center text-gray-400">Loading your schedule...</div>
+    return (
+      <div className="flex h-64 items-center justify-center text-gray-400">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+          <span>Loading your schedule...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -128,7 +179,7 @@ const StaffDashboard: React.FC = () => {
                 >
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant="dangerSoft">High Priority</Badge>
+                      <Badge variant="dangerSoft">{task.priority} Priority</Badge>
                       <span className="font-mono text-xs text-red-400">#{task.id}</span>
                     </div>
                     <h4 className="text-lg font-bold text-gray-800">{task.title}</h4>
@@ -203,7 +254,7 @@ const StaffDashboard: React.FC = () => {
   )
 }
 
-// Alt Bileşenler
+// Alt Bileşenler (Değişmedi)
 const StatsWidget = ({ icon: Icon, title, value, color }: any) => {
   const colors: any = {
     red: 'bg-red-50 text-red-600 border-red-100',

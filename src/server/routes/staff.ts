@@ -38,7 +38,7 @@ export const staffRoute: FastifyPluginAsync = async (fastify) => {
       [staffId]
     )
 
-    const formatted = rows.map((r) => ({
+    const formatted = rows.map((r:any) => ({
       id: r.id,
       type: 'Request', // Şikayetler tablosu ayrıysa UNION yapmak gerekir
       title: r.category,

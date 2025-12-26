@@ -28,7 +28,6 @@ const ComplaintsTable: React.FC = () => {
   const [complaints, setComplaints] = useState<Complaint[]>([])
   const [loading, setLoading] = useState(true)
 
-  // VERİLERİ ÇEK
   const fetchComplaints = async () => {
     setLoading(true)
     try {
@@ -44,49 +43,57 @@ const ComplaintsTable: React.FC = () => {
     }
   }
 
-  // Sayfa yüklendiğinde veya view değiştiğinde çek
   useEffect(() => {
     fetchComplaints()
   }, [viewHistory])
 
-  // PERSONEL ATAMA
-  const handleAssignStaff = async (staff: any) => {
-    if (!selectedComplaint) return
+  // PERSONEL ATAMA - GÜNCELLENMİŞ VE DÜZELTİLMİŞ
+// handleAssignStaff fonksiyonunu bu kesin çözümle değiştirin:
+const handleAssignStaff = async (staff: any) => {
+  if (!selectedComplaint) return;
 
-    const toastId = toast.loading('Assigning staff...')
-    try {
-      const res = await fetch(`/api/complaints/${selectedComplaint.id}/assign`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          staffId: staff.id,
-          staffName: staff.name,
-        }),
-      })
+  // 1. Bildirimi başlat ve toastId'yi değişkende tut
+  const toastId = toast.loading('Confirming assignment...');
 
-      if (!res.ok) throw new Error('Assign failed')
+  try {
+    const res = await fetch(`/api/requests/${selectedComplaint.id}/assign`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignedTo: staff.id }),
+    });
 
-      toast.success('Staff assigned successfully', { id: toastId })
-
-      // Listeyi yenile ve modalları kapat
-      fetchComplaints()
-      setShowAssignModal(false)
-      setSelectedComplaint(null)
-    } catch (error) {
-      toast.error('Failed to assign staff', { id: toastId })
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Server error');
     }
+
+    // 2. BİLDİRİM: id kullanarak mevcut loading bar'ı yeşil tike çeviriyoruz
+    toast.success('Assignment Confirmed!', { 
+      id: toastId, 
+      icon: '✅',
+      duration: 3000 
+    });
+
+    // 3. UI GÜNCELLEME: Listeyi yenile ve tüm modalları kapat
+    // await kullanarak listenin gerçekten gelmesini bekliyoruz
+    await fetchComplaints();
+    
+    // Modalları kapatmak için state'leri sıfırla
+    setShowAssignModal(false);
+    setSelectedComplaint(null);
+
+  } catch (error: any) {
+    console.error("Assignment Error:", error);
+    toast.error(error.message || 'Assignment failed', { id: toastId });
   }
+}
 
   const getPriorityVariant = (p: string) => {
     switch (p) {
-      case 'Critical':
-        return 'danger'
-      case 'High':
-        return 'warning'
-      case 'Medium':
-        return 'info'
-      default:
-        return 'success'
+      case 'Critical': return 'danger'
+      case 'High': return 'warning'
+      case 'Medium': return 'info'
+      default: return 'success'
     }
   }
 
@@ -132,9 +139,9 @@ const ComplaintsTable: React.FC = () => {
             <TableBody>
               {complaints.length === 0 ? (
                 <TableRow>
-                  <TableCell className="py-8 text-center text-gray-500">
+                  <td colSpan={7} className="py-8 text-center text-gray-500">
                     No complaints found.
-                  </TableCell>
+                  </td>
                 </TableRow>
               ) : (
                 complaints.map((item) => (
@@ -158,11 +165,8 @@ const ComplaintsTable: React.FC = () => {
                     <TableCell>
                       <Badge
                         variant={
-                          item.status === 'Pending'
-                            ? 'dangerSoft'
-                            : item.status === 'Investigating'
-                              ? 'info'
-                              : 'success'
+                          item.status === 'Pending' ? 'dangerSoft' : 
+                          item.status === 'Investigating' ? 'info' : 'success'
                         }
                       >
                         {item.status}

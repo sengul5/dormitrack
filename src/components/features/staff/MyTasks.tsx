@@ -4,66 +4,81 @@ import { Card } from '@ui/Card.component'
 import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
 
-// Veri tipi tanımı
+// Dashboard ile ortak veri tipi
 interface Task {
   id: number
   type: 'Request' | 'Complaint'
   title: string
   location: string
-  priority: 'High' | 'Medium' | 'Low'
+  priority: 'Critical' | 'High' | 'Medium' | 'Low'
   date: string
-  status: 'In Progress' | 'Pending' | 'Completed'
+  status: 'In Progress' | 'Pending' | 'Completed' | 'Resolved'
   desc: string
 }
 
+// MOCK DATA: Dashboard ile aynı verileri kullanıyoruz
+const INITIAL_MOCK_TASKS: Task[] = [
+  {
+    id: 101,
+    type: 'Request',
+    title: 'WiFi Connection Issue',
+    location: 'Room 204',
+    priority: 'High',
+    date: '2025-12-27 10:30',
+    status: 'In Progress',
+    desc: 'I cannot connect to the eduroam network.'
+  },
+  {
+    id: 102,
+    type: 'Complaint',
+    title: 'Water Leakage',
+    location: 'Kitchen Area',
+    priority: 'Critical',
+    date: '2025-12-27 09:15',
+    status: 'Pending',
+    desc: 'Pipe burst under the sink.'
+  },
+  {
+    id: 103,
+    type: 'Request',
+    title: 'New Key Card',
+    location: 'Reception',
+    priority: 'Low',
+    date: '2025-12-27 11:00',
+    status: 'Pending',
+    desc: 'I lost my key card and need a replacement.'
+  },
+  {
+    id: 104,
+    type: 'Request',
+    title: 'Lightbulb Replacement',
+    location: 'Room 305',
+    priority: 'Medium',
+    date: '2025-12-26 14:00',
+    status: 'Completed',
+    desc: 'Main light is flickering.'
+  }
+];
+
 const MyTasks: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
+  const [tasks, setTasks] = useState<Task[]>(INITIAL_MOCK_TASKS)
 
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 101,
-      type: 'Request',
-      title: 'Wifi Connection Issue',
-      location: 'Room 101',
-      priority: 'High',
-      date: 'Today, 10:30 AM',
-      status: 'In Progress',
-      desc: 'Student reports no internet connectivity.',
-    },
-    {
-      id: 302,
-      type: 'Complaint',
-      title: 'Noise Disturbance',
-      location: 'Room 404',
-      priority: 'Medium',
-      date: 'Yesterday',
-      status: 'Pending',
-      desc: 'Check the noise complaint reported by neighbors.',
-    },
-    {
-      id: 105,
-      type: 'Request',
-      title: 'Broken Chair',
-      location: 'Lobby',
-      priority: 'Low',
-      date: '12.10.2025',
-      status: 'Completed',
-      desc: 'Replace the broken leg of the sofa.',
-    },
-  ])
-
+  // Filtreleme mantığı: 'Active' sekmesi Completed olmayan her şeyi gösterir
   const filteredTasks = tasks.filter((task) =>
-    activeTab === 'active' ? task.status !== 'Completed' : task.status === 'Completed'
+    activeTab === 'active' 
+      ? (task.status !== 'Completed' && task.status !== 'Resolved') 
+      : (task.status === 'Completed' || task.status === 'Resolved')
   )
 
   const handleComplete = (id: number) => {
-    if (window.confirm('Mark this task as completed?')) {
-      setTasks(tasks.map((t) => (t.id === id ? { ...t, status: 'Completed' } : t)))
-    }
+    // Burada backend olsaydı bir API isteği atardık
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'Completed' } : t))
   }
 
   const getPriorityVariant = (p: Task['priority']) => {
     switch (p) {
+      case 'Critical':
       case 'High':
         return 'dangerSoft'
       case 'Medium':
@@ -75,6 +90,7 @@ const MyTasks: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col gap-6">
+      {/* Header & Tabs */}
       <div className="flex flex-col items-end justify-between gap-4 md:flex-row">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">My Tasks</h1>
@@ -85,7 +101,7 @@ const MyTasks: React.FC = () => {
             onClick={() => setActiveTab('active')}
             className={`rounded-lg px-6 py-2 text-sm font-bold transition-all ${activeTab === 'active' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            Active
+            Active ({tasks.filter(t => t.status !== 'Completed').length})
           </button>
           <button
             onClick={() => setActiveTab('completed')}
@@ -96,13 +112,15 @@ const MyTasks: React.FC = () => {
         </div>
       </div>
 
+      {/* Task Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredTasks.length === 0 ? (
           <Card className="col-span-full flex flex-col items-center p-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 text-gray-400">
               <CheckCircle size={32} />
             </div>
-            <h3 className="text-lg font-bold text-gray-700">No tasks found</h3>
+            <h3 className="text-lg font-bold text-gray-700">No {activeTab} tasks found</h3>
+            <p className="text-gray-400">You're all caught up!</p>
           </Card>
         ) : (
           filteredTasks.map((task) => (
@@ -112,7 +130,7 @@ const MyTasks: React.FC = () => {
                 <div className="flex items-center gap-3 text-xs font-medium text-gray-400">
                   <span className="font-mono text-gray-500">#{task.id}</span>
                   <span className="h-1 w-1 rounded-full bg-gray-300"></span>
-                  <span>{task.date}</span>
+                  <span>{task.date.split(' ')[0]}</span>
                 </div>
               </div>
 
@@ -142,7 +160,11 @@ const MyTasks: React.FC = () => {
 
               <div className="mt-auto border-t border-gray-50 pt-6">
                 {task.status !== 'Completed' ? (
-                  <Button size="lg" onClick={() => handleComplete(task.id)}>
+                  <Button 
+                    className="w-full"
+                    size="lg" 
+                    onClick={() => handleComplete(task.id)}
+                  >
                     <CheckSquare size={18} /> Mark as Done
                   </Button>
                 ) : (
