@@ -5,10 +5,9 @@ import {
   Zap,
   Bed,
   Thermometer,
-  UploadCloud,
   CheckCircle,
-  ArrowRight,
   AlertTriangle,
+  Home, // Oda simgesi için eklendi
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Button from '@ui/Button.component'
@@ -18,10 +17,10 @@ const CreateRequestForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false)
   const [category, setCategory] = useState('')
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Low')
+  const [room, setRoom] = useState('') // Oda numarası state'i eklendi
   const [desc, setDesc] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Kategoriler (Sabit kalabilir veya API'den çekilebilir)
   const categories = [
     { id: 'wifi', name: 'Wifi / Network', icon: Wifi },
     { id: 'plumbing', name: 'Plumbing', icon: Droplets },
@@ -33,8 +32,9 @@ const CreateRequestForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!category || !desc) {
-      toast.error('Please select a category and describe the issue.')
+    // Oda numarası kontrolü eklendi
+    if (!category || !desc || !room) {
+      toast.error('Please fill in all fields including Room Number.')
       return
     }
 
@@ -45,7 +45,8 @@ const CreateRequestForm: React.FC = () => {
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, room: '101', priority, description: desc }),
+        // room: '101' yerine state'den gelen room gönderiliyor
+        body: JSON.stringify({ category, room, priority, description: desc }),
       })
 
       if (!res.ok) throw new Error('Failed')
@@ -85,6 +86,7 @@ const CreateRequestForm: React.FC = () => {
           {categories.map((cat) => (
             <button
               key={cat.id}
+              type="button"
               onClick={() => setCategory(cat.name)}
               className={`flex h-40 flex-col items-center justify-center gap-3 rounded-2xl border-2 p-6 transition-all ${
                 category === cat.name
@@ -98,11 +100,27 @@ const CreateRequestForm: React.FC = () => {
           ))}
         </div>
 
+        {/* ODA NUMARASI ALANI - YENİ EKLENDİ */}
         <div className="mt-8">
-          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Description</h2>
+          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Room Information</h2>
+          <div className="relative">
+            <Home className="absolute left-4 top-3.5 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Enter your room number (e.g. 404)"
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              className="w-full rounded-xl border bg-gray-50 p-3 pl-12 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="mb-4 text-xl font-bold text-gray-800">3. Description</h2>
           <textarea
-            className="h-32 w-full rounded-xl border bg-gray-50 p-4"
-            placeholder="Describe the problem..."
+            className="h-32 w-full rounded-xl border bg-gray-50 p-4 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Describe the problem in detail..."
+            value={desc}
             onChange={(e) => setDesc(e.target.value)}
           ></textarea>
         </div>
@@ -111,21 +129,35 @@ const CreateRequestForm: React.FC = () => {
       <div className="flex flex-col gap-6">
         <Card className="p-8">
           <h2 className="mb-4 text-lg font-bold">Priority</h2>
-          {['Low', 'Medium', 'High'].map((level) => (
-            <button
-              key={level}
-              onClick={() => setPriority(level as any)}
-              className={`mb-2 w-full rounded-xl border p-3 text-left ${priority === level ? 'border-blue-200 bg-blue-50 text-blue-600' : 'bg-white'}`}
-            >
-              {level}
-            </button>
-          ))}
+          <div className="flex flex-col gap-2">
+            {['Low', 'Medium', 'High'].map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setPriority(level as any)}
+                className={`w-full rounded-xl border p-3 text-left transition-all ${
+                  priority === level 
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 shadow-sm' 
+                    : 'border-gray-100 bg-white hover:border-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`h-2 w-2 rounded-full ${
+                    level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                  }`} />
+                  <span className="font-medium">{level} Priority</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </Card>
-        <Button onClick={handleSubmit} disabled={loading} className="py-4">
-          {loading ? 'Sending...' : 'Submit Request'}
+        
+        <Button onClick={handleSubmit} disabled={loading} className="py-4 text-lg shadow-lg shadow-blue-100">
+          {loading ? 'Submitting...' : 'Submit Request'}
         </Button>
       </div>
     </div>
   )
 }
+
 export default CreateRequestForm

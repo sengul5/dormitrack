@@ -8,15 +8,17 @@ import {
   UploadCloud,
   CheckCircle,
   ArrowRight,
+  Home, // Oda simgesi için eklendi
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Button from '@ui/Button.component'
-import toast from 'react-hot-toast' // Toast eklendi
+import toast from 'react-hot-toast'
 
 const CreateComplaintForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false)
   const [category, setCategory] = useState('')
   const [priority, setPriority] = useState('Low')
+  const [room, setRoom] = useState('') // Oda numarası state'i eklendi
   const [desc, setDesc] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -32,8 +34,9 @@ const CreateComplaintForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!category || !desc) {
-      toast.error('Please select a category and describe the issue.')
+    // Oda numarası kontrolü eklendi
+    if (!category || !desc || !room) {
+      toast.error('Please select a category, enter room number, and describe the issue.')
       return
     }
 
@@ -41,14 +44,12 @@ const CreateComplaintForm: React.FC = () => {
     const toastId = toast.loading('Submitting report...')
 
     try {
-      // Dosya yükleme (File Upload) backend'de henüz olmadığı için
-      // Sadece metin verilerini gönderiyoruz.
       const res = await fetch('/api/complaints', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category,
-          room: '101', // Normalde user session veya inputtan gelir
+          room, // Statik '101' yerine state'den gelen room gönderiliyor
           priority,
           description: desc,
         }),
@@ -95,6 +96,7 @@ const CreateComplaintForm: React.FC = () => {
           {categories.map((cat) => (
             <button
               key={cat.id}
+              type="button"
               onClick={() => setCategory(cat.name)}
               className={`flex h-40 flex-col items-center justify-center gap-3 rounded-2xl border-2 p-6 transition-all ${
                 category === cat.name
@@ -107,8 +109,24 @@ const CreateComplaintForm: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* ODA NUMARASI ALANI - YENİ EKLENDİ */}
         <div className="mt-8">
-          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Incident Details</h2>
+          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Where did it happen? (Room No)</h2>
+          <div className="relative">
+            <Home className="absolute left-4 top-3.5 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Enter room number (e.g. 101, 404)"
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              className="w-full rounded-xl border border-gray-100 bg-gray-50 p-3 pl-12 font-medium text-gray-700 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
+            />
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <h2 className="mb-4 text-xl font-bold text-gray-800">3. Incident Details</h2>
           <textarea
             className="h-40 w-full resize-none rounded-2xl border border-gray-100 bg-gray-50 p-4 font-medium text-gray-700 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
             placeholder="Describe what happened..."
@@ -125,6 +143,7 @@ const CreateComplaintForm: React.FC = () => {
             {['Low', 'Medium', 'High', 'Critical'].map((level) => (
               <button
                 key={level}
+                type="button"
                 onClick={() => setPriority(level)}
                 className={`flex w-full items-center justify-between rounded-xl border px-5 py-3 text-left text-sm font-bold transition-all ${
                   priority === level
