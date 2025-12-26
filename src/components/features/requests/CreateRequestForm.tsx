@@ -7,7 +7,8 @@ import {
   Thermometer,
   CheckCircle,
   AlertTriangle,
-  Home, // Oda simgesi için eklendi
+  Home,
+  UploadCloud, // Dosya yükleme ikonu
 } from 'lucide-react'
 import { Card } from '@ui/Card.component'
 import Button from '@ui/Button.component'
@@ -17,8 +18,9 @@ const CreateRequestForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false)
   const [category, setCategory] = useState('')
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Low')
-  const [room, setRoom] = useState('') // Oda numarası state'i eklendi
+  const [room, setRoom] = useState('')
   const [desc, setDesc] = useState('')
+  const [file, setFile] = useState<File | null>(null) // Dosya state'i eklendi
   const [loading, setLoading] = useState(false)
 
   const categories = [
@@ -32,7 +34,6 @@ const CreateRequestForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Oda numarası kontrolü eklendi
     if (!category || !desc || !room) {
       toast.error('Please fill in all fields including Room Number.')
       return
@@ -42,11 +43,18 @@ const CreateRequestForm: React.FC = () => {
     const toastId = toast.loading('Sending request...')
 
     try {
+      // Not: Dosya yükleme işlemi için normalde FormData kullanılır.
+      // Şimdilik mevcut JSON yapısını bozmadan gönderiyoruz.
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // room: '101' yerine state'den gelen room gönderiliyor
-        body: JSON.stringify({ category, room, priority, description: desc }),
+        body: JSON.stringify({ 
+          category, 
+          room, 
+          priority, 
+          description: desc,
+          // image: file ? "dosya_yolu" : null // Backend hazır olduğunda eklenebilir
+        }),
       })
 
       if (!res.ok) throw new Error('Failed')
@@ -100,7 +108,6 @@ const CreateRequestForm: React.FC = () => {
           ))}
         </div>
 
-        {/* ODA NUMARASI ALANI - YENİ EKLENDİ */}
         <div className="mt-8">
           <h2 className="mb-4 text-xl font-bold text-gray-800">2. Room Information</h2>
           <div className="relative">
@@ -150,6 +157,23 @@ const CreateRequestForm: React.FC = () => {
               </button>
             ))}
           </div>
+        </Card>
+
+        {/* EVIDENCE ALANI - YENİ EKLENDİ */}
+        <Card className="p-8">
+          <h2 className="mb-4 text-lg font-bold text-gray-800">Evidence</h2>
+          <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 transition-colors hover:border-blue-300 hover:bg-blue-50">
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            <UploadCloud size={24} className="mb-2 text-blue-500" />
+            <span className="text-xs font-bold px-2 text-center">
+              {file ? file.name : 'Upload Photo (Optional)'}
+            </span>
+          </label>
         </Card>
         
         <Button onClick={handleSubmit} disabled={loading} className="py-4 text-lg shadow-lg shadow-blue-100">

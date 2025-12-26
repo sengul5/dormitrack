@@ -35,24 +35,26 @@ const MyRequestsTable: React.FC = () => {
       const data = await res.json()
       
       const formatted = data.map((item: any) => {
-        // TARİH DÜZELTMESİ: Date boşa düşerse createdAt, o da yoksa bugünü kullan
+        // Tarih formatı ve fallback mekanizması
         const formattedDate = item.date || 
           (item.createdAt ? new Date(item.createdAt).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR'));
 
         return {
           id: item.id,
-          category: item.category,
-          room: item.room || '101',
+          category: item.category || 'Maintenance',
+          room: item.room || 'N/A',
           priority: (item.priority || 'Medium').toUpperCase(),
           date: formattedDate,
           status: (item.status || 'PENDING').toUpperCase(),
-          desc: item.description || item.desc || '',
-          rated: item.rated || false,
+          // Backend'den 'description' veya 'desc' gelebilir, ikisini de kontrol ediyoruz
+          desc: item.description || item.desc || 'No description provided.',
+          rated: item.rated || item.is_rated || false,
           rating: item.rating || 0
         }
       })
 
-      setMyRequests(formatted.reverse())
+      // En yeni talepleri en üstte göster
+      setMyRequests(formatted)
     } catch (error) {
       toast.error('Talepler yüklenemedi.')
     } finally {
@@ -64,12 +66,28 @@ const MyRequestsTable: React.FC = () => {
     fetchRequests()
   }, [])
 
+  // Badge Renk Yönetimi
+  const getStatusVariant = (status: string) => {
+    const s = status.toUpperCase()
+    if (s === 'PENDING' || s === 'OPEN') return 'dangerSoft'
+    if (s === 'IN PROGRESS' || s === 'INVESTIGATING' || s === 'PROCESSING') return 'info'
+    if (s === 'COMPLETED' || s === 'RESOLVED' || s === 'DONE') return 'success'
+    return 'outline'
+  }
+
+  const getPriorityVariant = (priority: string) => {
+    const p = priority.toUpperCase()
+    if (p === 'CRITICAL' || p === 'HIGH') return 'danger'
+    if (p === 'MEDIUM') return 'warning'
+    return 'success'
+  }
+
   const handleOpenRate = (item: MyRequest) => {
     setItemToRate(item)
     setFeedbackModalOpen(true)
   }
 
-  const handleFeedbackSubmit = async (data: { rating: number; comment: string }) => {
+  const handleFeedbackSubmit = async (data: { rating: number; comment?: string }) => {
     if (!itemToRate) return
     const toastId = toast.loading('Geri bildirim gönderiliyor...')
     try {
@@ -82,25 +100,12 @@ const MyRequestsTable: React.FC = () => {
         toast.success('Geri bildiriminiz alındı!', { id: toastId })
         fetchRequests()
         setFeedbackModalOpen(false)
+      } else {
+        throw new Error()
       }
     } catch (error) {
       toast.error('Hata oluştu.', { id: toastId })
     }
-  }
-
-  const getStatusVariant = (status: string) => {
-    const s = status.toUpperCase()
-    if (s === 'PENDING' || s === 'ACTIVE' || s === 'OPEN') return 'dangerSoft'
-    if (s === 'IN PROGRESS' || s === 'INVESTIGATING' || s === 'PROCESSING') return 'info'
-    if (s === 'COMPLETED' || s === 'RESOLVED' || s === 'DONE') return 'success'
-    return 'outline'
-  }
-
-  const getPriorityVariant = (priority: string) => {
-    const p = priority.toUpperCase()
-    if (p === 'CRITICAL' || p === 'HIGH') return 'danger'
-    if (p === 'MEDIUM') return 'warning'
-    return 'success'
   }
 
   return (
@@ -127,14 +132,16 @@ const MyRequestsTable: React.FC = () => {
             <TableBody>
               {myRequests.length === 0 ? (
                 <TableRow>
-                  <td colSpan={6} className="py-10 text-center text-gray-500 text-sm">
-                    Henüz kayıtlı talebiniz bulunmuyor.
+                  <td colSpan={6} className="py-12 text-center text-gray-500 text-sm">
+                    Henüz kayıtlı bir bakım talebiniz bulunmuyor.
                   </td>
                 </TableRow>
               ) : (
                 myRequests.map((item) => (
                   <TableRow key={item.id} className="align-middle">
-                    <TableCell className="pl-6 font-bold text-gray-800">{item.category}</TableCell>
+                    <TableCell className="pl-6 font-bold text-gray-800">
+                      {item.category}
+                    </TableCell>
                     
                     <TableCell className="text-left py-4">
                       <span className="inline-flex items-center justify-center rounded-lg border border-gray-100 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
@@ -145,27 +152,30 @@ const MyRequestsTable: React.FC = () => {
                     <TableCell className="font-mono text-xs text-gray-500">{item.date}</TableCell>
                     
                     <TableCell>
-                      <Badge variant={getPriorityVariant(item.priority) as any}>{item.priority}</Badge>
+                      <Badge variant={getPriorityVariant(item.priority) as any}>
+                        {item.priority}
+                      </Badge>
                     </TableCell>
                     
                     <TableCell>
-                      <Badge variant={getStatusVariant(item.status) as any}>{item.status}</Badge>
+                      <Badge variant={getStatusVariant(item.status) as any}>
+                        {item.status}
+                      </Badge>
                     </TableCell>
 
-                    {/* ACTION LAYOUT DÜZELTMESİ */}
                     <TableCell className="pr-6 text-right w-[140px]">
                       <div className="flex justify-end items-center h-10">
-                        {item.status === 'COMPLETED' && !item.rated ? (
+                        {(item.status === 'COMPLETED' || item.status === 'DONE') && !item.rated ? (
                           <Button 
                             size="sm" 
                             variant="outline" 
                             onClick={() => handleOpenRate(item)} 
-                            className="h-9 w-24 border-green-200 text-green-600 hover:bg-green-50 justify-center"
+                            className="h-9 w-full border-green-200 text-green-600 hover:bg-green-50 justify-center"
                           >
                             <Star size={14} className="mr-1" /> Rate
                           </Button>
                         ) : item.rated ? (
-                          <div className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-100 bg-gray-50 h-9 w-24 text-xs font-bold text-gray-500">
+                          <div className="inline-flex items-center justify-center gap-1 rounded-lg border border-gray-100 bg-gray-50 h-9 w-full text-xs font-bold text-gray-500">
                             <Star size={12} className="fill-yellow-400 text-yellow-400" />
                             {item.rating}.0
                           </div>
@@ -174,7 +184,7 @@ const MyRequestsTable: React.FC = () => {
                             size="sm" 
                             variant="ghost" 
                             onClick={() => setSelectedRequest(item)} 
-                            className="h-9 w-24 flex items-center justify-center gap-2 text-red-500 hover:bg-red-50"
+                            className="h-9 w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50"
                           >
                             <Eye size={16} /> 
                             <span className="font-bold">View</span>
@@ -190,18 +200,26 @@ const MyRequestsTable: React.FC = () => {
         )}
       </div>
 
-      <Modal isOpen={!!selectedRequest} onClose={() => setSelectedRequest(null)} title={`Request #${selectedRequest?.id}`}>
+      {/* Detay Modalı */}
+      <Modal 
+        isOpen={!!selectedRequest} 
+        onClose={() => setSelectedRequest(null)} 
+        title={`Request Details #${selectedRequest?.id}`}
+      >
         {selectedRequest && (
           <div className="space-y-4">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 italic">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 leading-relaxed">
+              <p className="font-bold mb-1 underline">Description:</p>
               "{selectedRequest.desc}"
             </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <MapPin size={16} /> Location: <span className="font-bold text-gray-800">{selectedRequest.room}</span>
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin size={16} className="text-blue-500" /> 
+                Location: <span className="font-bold text-gray-900">Room {selectedRequest.room}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Calendar size={16} /> Date: <span className="font-bold text-gray-800">{selectedRequest.date}</span>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Calendar size={16} className="text-blue-500" /> 
+                Submitted on: <span className="font-bold text-gray-900">{selectedRequest.date}</span>
               </div>
             </div>
           </div>

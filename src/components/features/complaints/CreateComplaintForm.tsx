@@ -110,9 +110,8 @@ const CreateComplaintForm: React.FC = () => {
           ))}
         </div>
 
-        {/* ODA NUMARASI ALANI - YENİ EKLENDİ */}
         <div className="mt-8">
-          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Where did it happen? (Room No)</h2>
+          <h2 className="mb-4 text-xl font-bold text-gray-800">2. Room Number</h2>
           <div className="relative">
             <Home className="absolute left-4 top-3.5 text-gray-400" size={20} />
             <input
@@ -126,7 +125,7 @@ const CreateComplaintForm: React.FC = () => {
         </div>
 
         <div className="mt-8">
-          <h2 className="mb-4 text-xl font-bold text-gray-800">3. Incident Details</h2>
+          <h2 className="mb-4 text-xl font-bold text-gray-800">3. Complaint Details</h2>
           <textarea
             className="h-40 w-full resize-none rounded-2xl border border-gray-100 bg-gray-50 p-4 font-medium text-gray-700 transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
             placeholder="Describe what happened..."
@@ -176,7 +175,7 @@ const CreateComplaintForm: React.FC = () => {
             disabled={loading}
             className="mt-6 w-full py-4 text-lg shadow-xl shadow-red-200"
           >
-            {loading ? 'Submitting...' : 'Submit Report'} <ArrowRight size={20} />
+            {loading ? 'Submitting...' : 'Submit Complaint'} <ArrowRight size={20} />
           </Button>
         </Card>
       </div>

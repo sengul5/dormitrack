@@ -45,7 +45,7 @@ export const requestsRoute: FastifyPluginAsync = async (fastify) => {
     `)
 
     // Frontend formatına çevir
-    const formatted = rows.map((r) => ({
+    const formatted = rows.map((r:any) => ({
       id: r.id,
       name: r.student_name,
       img: r.student_avatar,
@@ -81,7 +81,7 @@ export const requestsRoute: FastifyPluginAsync = async (fastify) => {
       [userId]
     )
 
-    const formatted = rows.map((r) => ({
+    const formatted = rows.map((r: any) => ({
       id: r.id,
       category: r.category,
       room: r.room,
