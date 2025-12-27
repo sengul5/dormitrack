@@ -10,12 +10,16 @@ export const staffRoute: FastifyPluginAsync = async (fastify) => {
 
   // PERSONEL EKLE
   fastify.post('/', async (request, reply) => {
-    const { name, role, phone } = request.body as any
-    const img = `https://i.pravatar.cc/150?u=${Date.now()}`
+    // Frontend'den gönderilen 'img' bilgisini de alıyoruz
+    const { name, role, phone, img } = request.body as any
+
+    // EĞER frontend'den img gelmezse (boş string ise), veritabanına NULL veya boş metin yazılır.
+    // Pravatar rastgele resim atama satırı kaldırıldı.
+    const staffImg = img || ''
 
     const { rows } = await pool.query(
       `INSERT INTO staff (name, role, phone, img, status) VALUES ($1, $2, $3, $4, 'offline') RETURNING *`,
-      [name, role, phone, img]
+      [name, role, phone, staffImg]
     )
     return reply.code(201).send(rows[0])
   })
@@ -28,7 +32,7 @@ export const staffRoute: FastifyPluginAsync = async (fastify) => {
   })
 
   // PERSONELİN GÖREVLERİ (MyTasks)
-  // Mock staff ID: 1 kabul ediyoruz
+  // Mock staff ID: 1 kabul ediyoruz (Genelde JWT token'dan çekilir)
   fastify.get('/tasks', async (request, reply) => {
     const staffId = 1
     const { rows } = await pool.query(
@@ -38,18 +42,18 @@ export const staffRoute: FastifyPluginAsync = async (fastify) => {
       [staffId]
     )
 
-    const formatted = rows.map((r:any) => ({
+    const formatted = rows.map((r: any) => ({
       id: r.id,
-      type: 'Request', // Şikayetler tablosu ayrıysa UNION yapmak gerekir
-      title: r.category,
-      location: r.room,
-      priority: r.priority,
-      date: new Date(r.created_at).toLocaleTimeString('tr-TR', {
+      type: 'Request',
+      title: r.category || 'General Maintenance',
+      location: r.room || 'N/A',
+      priority: r.priority || 'Medium',
+      date: r.created_at ? new Date(r.created_at).toLocaleTimeString('tr-TR', {
         hour: '2-digit',
         minute: '2-digit',
-      }),
+      }) : 'N/A',
       status: r.status,
-      desc: r.description,
+      desc: r.description || r.desc || '',
     }))
     return reply.send(formatted)
   })
@@ -57,7 +61,8 @@ export const staffRoute: FastifyPluginAsync = async (fastify) => {
   // GÖREV TAMAMLA
   fastify.patch('/tasks/:id/complete', async (request, reply) => {
     const { id } = request.params as { id: string }
-    await pool.query(`UPDATE requests SET status = 'Completed' WHERE id = $1`, [id])
+    // Status 'Completed' olarak güncelleniyor
+    await pool.query(`UPDATE requests SET status = 'COMPLETED' WHERE id = $1`, [id])
     return reply.send({ success: true })
   })
 }
