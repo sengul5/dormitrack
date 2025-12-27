@@ -1,41 +1,34 @@
 import React, { useState, useEffect } from 'react'
-import { Archive, ClipboardList, Eye, MapPin, Calendar, Star } from 'lucide-react'
+import { Archive, Megaphone, Eye, MapPin, Calendar, User } from 'lucide-react'
 import { Card, CardHeader, CardTitle } from '@ui/Card.component'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@ui/Table.component'
 import Badge from '@ui/Badge.component'
 import Button from '@ui/Button.component'
-import Modal from '@ui/Modal.component'
 import Avatar from '@ui/Avatar.component'
-
-import GiveFeedbackModal from '../../modals/GiveFeedbackModal'
+import Modal from '@ui/Modal.component'
 import toast from 'react-hot-toast'
+import AssignStaffModal from 'src/components/features/complaints/AssignStaffModal.jsx'
+
 
 interface Request {
   id: number
   name: string
-
+  img: string
   category: string
   room: string
-  priority: 'High' | 'Medium' | 'Low'
+  priority: 'Critical' | 'High' | 'Medium' | 'Low'
   date: string
-  status: 'In Progress' | 'Pending' | 'Completed'
+  status: 'Pending' | 'Investigating' | 'Open' | 'Resolved'
   desc: string
-  img: string
-
-  rated?: boolean
-  rating?: number
 }
 
 const RequestsTable: React.FC = () => {
   const [viewHistory, setViewHistory] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
-  const [itemToRate, setItemToRate] = useState<Request | null>(null)
-  
+  const [showAssignModal, setShowAssignModal] = useState(false)
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
 
-  // VERİLERİ ÇEK (Admin Complaint mantığıyla aynı query yapısı)
   const fetchRequests = async () => {
     setLoading(true)
     try {
@@ -55,35 +48,53 @@ const RequestsTable: React.FC = () => {
     fetchRequests()
   }, [viewHistory])
 
-  const handleOpenRate = (item: Request) => {
-    setItemToRate(item)
-    setFeedbackModalOpen(true)
-  }
+  // PERSONEL ATAMA - GÜNCELLENMİŞ VE DÜZELTİLMİŞ
+// handleAssignStaff fonksiyonunu bu kesin çözümle değiştirin:
+const handleAssignStaff = async (staff: any) => {
+  if (!selectedRequest) return;
 
-  const handleFeedbackSubmit = async (data: { rating: number; comment: string }) => {
-    if (!itemToRate) return
-    const toastId = toast.loading('Submitting feedback...')
-    try {
-      const res = await fetch(`/api/requests/${itemToRate.id}/rate`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      })
-      if (res.ok) {
-        toast.success('Feedback submitted successfully!', { id: toastId })
-        fetchRequests()
-        setFeedbackModalOpen(false)
-        setItemToRate(null)
-      }
-    } catch (error) {
-      toast.error('Failed to submit feedback', { id: toastId })
+  // 1. Bildirimi başlat ve toastId'yi değişkende tut
+  const toastId = toast.loading('Confirming assignment...');
+
+  try {
+    const res = await fetch(`/api/requests/${selectedRequest.id}/assign`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignedTo: staff.id }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Server error');
     }
+
+    // 2. BİLDİRİM: id kullanarak mevcut loading bar'ı yeşil tike çeviriyoruz
+    toast.success('Assignment Confirmed!', { 
+      id: toastId, 
+      icon: '✅',
+      duration: 3000 
+    });
+
+    // 3. UI GÜNCELLEME: Listeyi yenile ve tüm modalları kapat
+    // await kullanarak listenin gerçekten gelmesini bekliyoruz
+    await fetchRequests();
+    
+    // Modalları kapatmak için state'leri sıfırla
+    setShowAssignModal(false);
+    setSelectedRequest(null);
+  } catch (error: any) {
+    console.error("Assignment Error:", error);
+    toast.error(error.message || 'Assignment failed', { id: toastId });
   }
+}
 
   const getPriorityVariant = (p: string) => {
-    if (p === 'High') return 'danger'
-    if (p === 'Medium') return 'warning'
-    return 'success'
+    switch (p) {
+      case 'Critical': return 'danger'
+      case 'High': return 'warning'
+      case 'Medium': return 'info'
+      default: return 'success'
+    }
   }
 
   return (
@@ -92,18 +103,18 @@ const RequestsTable: React.FC = () => {
         <div className="flex w-full items-center justify-between">
           <div>
             <CardTitle
-              icon={viewHistory ? Archive : ClipboardList}
-              className={viewHistory ? '' : 'text-blue-600'}
+              icon={viewHistory ? Archive : Megaphone}
+              className={viewHistory ? '' : 'text-red-600'}
             >
               {viewHistory ? 'Request Archive' : 'Active Requests'}
             </CardTitle>
             <p className="mt-1 pl-1 text-sm text-gray-500">
-              {viewHistory ? 'Review your past service requests.' : 'Track your ongoing service requests.'}
+              {viewHistory ? 'Review past records.' : 'Manage critical issues.'}
             </p>
           </div>
 
           <Button
-            variant={viewHistory ? 'primary' : 'outline'}
+            variant={viewHistory ? 'danger' : 'outline'}
             onClick={() => setViewHistory(!viewHistory)}
           >
             {viewHistory ? 'Back to Active' : 'History'}
@@ -117,7 +128,8 @@ const RequestsTable: React.FC = () => {
         ) : (
           <Table>
             <TableHeader>
-              <TableHead className="pl-6">Category</TableHead>
+              <TableHead className="pl-6">Student</TableHead>
+              <TableHead>Category</TableHead>
               <TableHead>Room</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
@@ -127,9 +139,9 @@ const RequestsTable: React.FC = () => {
             <TableBody>
               {requests.length === 0 ? (
                 <TableRow>
-                   <td colSpan={6} className="py-8 text-center text-gray-500">
-                    No requests found. </td>
-                  
+                  <td colSpan={7} className="py-8 text-center text-gray-500">
+                    No requests found.
+                  </td>
                 </TableRow>
               ) : (
                 requests.map((item) => (
@@ -143,6 +155,7 @@ const RequestsTable: React.FC = () => {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="font-semibold text-gray-600">{item.category}</TableCell>
                     <TableCell className="font-medium text-gray-500">{item.room}</TableCell>
                     <TableCell>
                       <Badge variant={getPriorityVariant(item.priority) as any}>
@@ -152,24 +165,24 @@ const RequestsTable: React.FC = () => {
                     <TableCell>
                       <Badge
                         variant={
-                          item.status === 'Completed' ? 'success' : 
-                          item.status === 'In Progress' ? 'info' : 'dangerSoft'
+                          item.status === 'Pending' ? 'dangerSoft' : 
+                          item.status === 'Investigating' ? 'info' : 'success'
                         }
                       >
                         {item.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-gray-400">{item.date}</TableCell>
-                    <TableCell className="pr-6 text-right">
-  <Button
-    size="sm"
-    variant="ghost"
-    className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-    onClick={() => setSelectedRequest(item)}
-  >
-    <Eye size={16} /> Details
-  </Button>
-</TableCell>
+                    <TableCell className="pr-6">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+                        onClick={() => setSelectedRequest(item)}
+                      >
+                        <Eye size={16} /> Details
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -186,15 +199,9 @@ const RequestsTable: React.FC = () => {
         {selectedRequest && (
           <div className="space-y-6">
             <div className="flex items-center gap-5">
-                <Avatar size="lg" src={selectedRequest.img} alt={selectedRequest.name} />
-
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                <span className="text-2xl font-bold text-blue-600">
-                  {selectedRequest.category.charAt(0)}
-                </span>
-              </div>
+              <Avatar size="lg" src={selectedRequest.img} alt={selectedRequest.name} />
               <div>
-                <h4 className="text-xl font-bold text-gray-900">{selectedRequest.category}</h4>
+                <h4 className="text-xl font-bold text-gray-900">{selectedRequest.name}</h4>
                 <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
                   <span className="flex items-center gap-1.5">
                     <MapPin size={14} /> Room {selectedRequest.room}
@@ -206,8 +213,8 @@ const RequestsTable: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-              <label className="mb-2 block text-xs font-bold uppercase text-blue-400">
+            <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+              <label className="mb-2 block text-xs font-bold uppercase text-red-400">
                 Description
               </label>
               <p className="text-sm font-medium text-gray-700">"{selectedRequest.desc}"</p>
@@ -217,15 +224,9 @@ const RequestsTable: React.FC = () => {
               <Button variant="ghost" onClick={() => setSelectedRequest(null)}>
                 Close
               </Button>
-              {selectedRequest.status === 'Completed' && !selectedRequest.rated && (
-                <Button
-                  className="bg-amber-500 text-white hover:bg-amber-600"
-                  onClick={() => {
-                    setSelectedRequest(null)
-                    handleOpenRate(selectedRequest)
-                  }}
-                >
-                  <Star size={16} className="mr-2" /> Rate Service
+              {selectedRequest.status !== 'Resolved' && (
+                <Button variant="danger" onClick={() => setShowAssignModal(true)}>
+                  <User size={16} /> Assign Investigation
                 </Button>
               )}
             </div>
@@ -233,14 +234,11 @@ const RequestsTable: React.FC = () => {
         )}
       </Modal>
 
-      <GiveFeedbackModal
-        isOpen={feedbackModalOpen}
-        onClose={() => {
-          setFeedbackModalOpen(false)
-          setItemToRate(null)
-        }}
-        itemTitle={itemToRate?.category}
-        onSubmit={handleFeedbackSubmit}
+      <AssignStaffModal
+        isOpen={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        onAssign={handleAssignStaff}
+        taskTitle={selectedRequest?.category}
       />
     </Card>
   )
